@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Dr. Huang 模擬投資 — 同學入口</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --card:rgba(255,255,255,0.92); --ink:#0f141a; --muted:rgba(15,20,26,0.58);
+      --line:rgba(15,20,26,0.11); --shadow:0 16px 44px rgba(0,0,0,0.11);
+      --radius:16px; --pad:16px;
+      --accent:#1d4ed8; --danger:#ef4444; --ok:#059669; --warn:#d97706;
+      --stock:#1d4ed8; --bond:#059669; --crypto:#7c3aed;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{
+      font-family:'Noto Sans TC',system-ui,sans-serif;
+      color:var(--ink);
+      min-height:100vh;
+      overflow-x:hidden;
+      font-size:13px;
+      background:linear-gradient(145deg,#0f172a 0%,#1e3a5f 40%,#312e81 100%);
+    }
+    .mono{font-family:'JetBrains Mono',monospace;}
+    .ok{color:var(--ok);} .bad{color:var(--danger);}
+
+    /* ===== STUDENT PORTAL (embedded) ===== */
+    #sPortalLayer{position:fixed;inset:0;z-index:8000;background:linear-gradient(145deg,#0f172a 0%,#1e3a5f 40%,#312e81 100%);display:none;overflow-y:auto;}
+    #sPortalLayer.show{display:block;}
+    .sPortalCenter{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;}
+    .sPortalBox{width:min(540px,96vw);margin:auto;}
+    .sLoginCard{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:24px;padding:36px 40px;box-shadow:0 32px 80px rgba(0,0,0,0.50);backdrop-filter:blur(20px);text-align:center;}
+    .sBadge2{display:inline-block;padding:3px 14px;border-radius:999px;background:rgba(5,150,105,0.25);border:1px solid rgba(5,150,105,0.40);color:#6ee7b7;font-size:11px;font-weight:700;margin-bottom:14px;letter-spacing:.8px;}
+    .sTitle{font-size:20px;font-weight:900;color:#fff;line-height:1.3;margin-bottom:5px;}
+    .sSub{font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:20px;line-height:1.7;}
+    .sLbl{display:block;text-align:left;font-size:11px;color:rgba(255,255,255,0.55);margin-bottom:4px;font-weight:600;letter-spacing:.3px;margin-top:10px;}
+    .sInp{width:100%;padding:11px 14px;border-radius:11px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.08);color:#fff;font-size:13.5px;font-family:inherit;outline:none;margin-bottom:0;}
+    .sInp::placeholder{color:rgba(255,255,255,0.28);}
+    .sInp:focus{border-color:rgba(255,255,255,0.40);}
+    .sSel{width:100%;padding:11px 14px;border-radius:11px;border:1px solid rgba(255,255,255,0.16);background:rgba(20,30,60,0.85);color:#fff;font-size:13px;font-family:inherit;outline:none;cursor:pointer;}
+    .sSel option{background:#1e2846;color:#fff;}
+    .sAddRow{display:flex;gap:6px;margin-top:6px;}
+    .sAddRow input{flex:1;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.08);color:#fff;font-size:12px;font-family:inherit;outline:none;}
+    .sAddRow input::placeholder{color:rgba(255,255,255,0.28);}
+    .sAddRow button{padding:8px 12px;border-radius:9px;border:1px solid rgba(255,255,255,0.20);background:rgba(255,255,255,0.14);color:#fff;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;}
+    .sAddRow button:hover{background:rgba(255,255,255,0.24);}
+    .sBtn2{width:100%;padding:13px;border-radius:11px;border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;font-family:inherit;margin-top:10px;letter-spacing:.3px;}
+    .sBtn2:hover{opacity:.88;} .sBtn2:active{transform:scale(.98);}
+    .sBtn2-green{background:linear-gradient(135deg,#059669,#0891b2);}
+    .sBtn2-purple{background:linear-gradient(135deg,#7c3aed,#1d4ed8);}
+    .sBtn2-plain{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);}
+    .sDivider2{display:flex;align-items:center;gap:10px;margin:14px 0;}
+    .sDivider2 span{font-size:11px;color:rgba(255,255,255,0.28);white-space:nowrap;}
+    .sDivider2::before,.sDivider2::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.09);}
+    .sMsg2{font-size:12px;min-height:18px;margin-top:8px;text-align:left;}
+    .sMsg2.ok{color:#4ade80;} .sMsg2.err{color:#f87171;} .sMsg2.info{color:#93c5fd;}
+    /* Student app area */
+    .sAppCard{background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.06);padding:18px;margin-bottom:12px;}
+    .sAppTitle{font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+    .sTopBar2{background:linear-gradient(90deg,#059669,#0891b2);color:#fff;padding:12px 16px;border-radius:14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;box-shadow:0 4px 18px rgba(5,150,105,0.28);}
+    .sTopBar2 strong{font-size:15px;font-weight:700;display:block;}
+    .sTopBar2 span{font-size:11.5px;opacity:.8;}
+    .sTopBtns2{display:flex;gap:8px;align-items:center;}
+    .sTopBtn2{padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.14);color:#fff;font-size:11.5px;cursor:pointer;font-family:inherit;transition:background .12s;white-space:nowrap;}
+    .sTopBtn2:hover{background:rgba(255,255,255,0.24);}
+    .sLockBar{background:#fef2f2;border:1.5px solid #fca5a5;border-radius:12px;padding:12px 16px;margin-bottom:12px;display:none;align-items:center;gap:12px;}
+    .sLockBar.show{display:flex;}
+    .sRoundBadge2{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;font-size:12px;font-weight:700;margin-bottom:12px;}
+    .sRoundBadge2.open{background:rgba(5,150,105,0.10);border:1px solid rgba(5,150,105,0.30);color:#059669;}
+    .sRoundBadge2.locked{background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.30);color:#dc2626;}
+    .sPGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+    .sPCard{padding:12px 10px;border-radius:12px;border:1px solid #e2e8f0;background:#f8fafc;text-align:center;}
+    .sPLabel{font-size:10px;color:#64748b;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+    .sPVal{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#0f172a;}
+    .sPVal.ok{color:#059669;} .sPVal.bad{color:#ef4444;} .sPVal.acc{color:#1d4ed8;}
+    .sTable2{width:100%;border-collapse:collapse;font-size:11.5px;}
+    .sTable2 th,.sTable2 td{border-bottom:1px solid #e2e8f0;padding:7px 5px;text-align:left;}
+    .sTable2 th{font-weight:700;color:#64748b;font-size:10.5px;}
+    .sAssetRow2{margin-bottom:14px;}
+    .sAssetTop2{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+    .sAssetName2{font-weight:700;font-size:13.5px;}
+    .sAssetName2.sk{color:#1d4ed8;} .sAssetName2.bd{color:#059669;} .sAssetName2.cr{color:#7c3aed;}
+    .sAssetPct2{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:800;}
+    .sAssetPct2.sk{color:#1d4ed8;} .sAssetPct2.bd{color:#059669;} .sAssetPct2.cr{color:#7c3aed;}
+    .sRange2{width:100%;height:7px;border-radius:4px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;}
+    .sRange2.sk{accent-color:#1d4ed8;} .sRange2.bd{accent-color:#059669;} .sRange2.cr{accent-color:#7c3aed;} .sRange2.lv{accent-color:#1d4ed8;}
+    .sSumBar2{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-radius:11px;margin-top:10px;}
+    .sSumBar2.ok{background:rgba(5,150,105,0.07);border:1.5px solid rgba(5,150,105,0.25);}
+    .sSumBar2.warn{background:rgba(239,68,68,0.07);border:1.5px solid rgba(239,68,68,0.25);}
+    .sSumLabel2{font-size:12.5px;font-weight:700;}
+    .sSumLabel2.ok{color:#059669;} .sSumLabel2.warn{color:#ef4444;}
+    .sSumVal2{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:800;}
+    .sSumVal2.ok{color:#059669;} .sSumVal2.warn{color:#ef4444;}
+    .sLevRow2{display:flex;align-items:center;gap:12px;margin-top:12px;}
+    .sLevLabel2{font-size:13px;font-weight:700;min-width:60px;color:#0f172a;}
+    .sLevVal2{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:800;color:#1d4ed8;min-width:52px;}
+    .sTextarea2{width:100%;min-height:75px;padding:10px;border-radius:11px;border:1.5px solid #e2e8f0;font-family:inherit;font-size:13px;resize:vertical;background:#fff;color:#0f172a;outline:none;}
+    .sTextarea2:focus{border-color:#1d4ed8;}
+    .sSaveBtn2{width:100%;padding:14px;border-radius:11px;border:none;background:linear-gradient(135deg,#1d4ed8,#7c3aed);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s;margin-top:8px;box-shadow:0 4px 18px rgba(29,78,216,0.28);}
+    .sSaveBtn2:hover{opacity:.9;} .sSaveBtn2:active{transform:scale(.99);}
+    .sSaveBtn2:disabled{opacity:.35;cursor:not-allowed;box-shadow:none;}
+    .sSaveStatus2{text-align:center;font-size:12px;min-height:20px;margin-top:8px;color:#64748b;}
+    .sSaveStatus2.ok{color:#059669;font-weight:600;} .sSaveStatus2.err{color:#ef4444;}
+  </style>
+</head>
+<body>
+
+<script>
+(function(){
+  const p=window.location.protocol,h=window.location.hostname;
+  if(p==="file:"||h===""||h==="null"||h.includes("claude.ai")||window.location.origin==="null"){
+    window.__SANDBOX_MODE__=true;
+    document.getElementById("sandboxBanner").style.display="block";
+  }
+})();
+</script>
+
+<div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(15,20,26,0.92);color:#fff;border-radius:12px;padding:10px 20px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999;max-width:90vw;text-align:center;"></div>
+
+<!-- ====== STUDENT APP (fullpage) ====== -->
+<div id="sPortalLayer" class="show" style="position:relative;min-height:100vh;">
+  <div class="sPortalCenter">
+    <div class="sPortalBox">
+
+      <!-- LOGIN / REGISTER -->
+      <div id="sLoginArea">
+        <div class="sLoginCard">
+          <div class="sBadge2">🎓 STUDENT PORTAL</div>
+          <div class="sTitle">Dr. Huang 黃胤祥老師<br>模擬投資｜同學入口</div>
+          <div class="sSub">選擇班級與組別，輸入密碼即可登入<br>首次使用請先「新組別註冊」設定密碼</div>
+
+          <div id="sLoginForm">
+            <label class="sLbl">📅 學期班級</label>
+            <select class="sSel" id="sSelClass" style="margin-bottom:6px;"></select>
+            <div class="sAddRow"><input type="text" id="sInpNewClass" placeholder="新增班級（如 1151甲班）"/><button id="sBtnAddClass">＋ 新增</button></div>
+            <label class="sLbl">👥 組別</label>
+            <select class="sSel" id="sSelGroup" style="margin-bottom:6px;"></select>
+            <div class="sAddRow"><input type="text" id="sInpNewGroup" placeholder="新增組別（如 第13組）"/><button id="sBtnAddGroup">＋ 新增</button></div>
+            <label class="sLbl">🔑 組別密碼</label>
+            <input class="sInp" type="password" id="sLoginPwd" placeholder="輸入本組密碼" autocomplete="off" style="margin-top:4px;"/>
+            <button class="sBtn2 sBtn2-green" id="sBtnLogin" style="margin-top:14px;">🚀 登入我的組別</button>
+            <div class="sDivider2"><span>還沒有帳號？</span></div>
+            <button class="sBtn2 sBtn2-purple" id="sBtnGoReg">📝 新組別註冊</button>
+            <div class="sMsg2" id="sLoginMsg"></div>
+          </div>
+
+          <div id="sRegForm" style="display:none;">
+            <label class="sLbl">📅 學期班級</label>
+            <select class="sSel" id="sRegClass" style="margin-bottom:6px;"></select>
+            <div class="sAddRow"><input type="text" id="sInpNewClass2" placeholder="新增班級"/><button id="sBtnAddClass2">＋</button></div>
+            <label class="sLbl">👥 組別</label>
+            <select class="sSel" id="sRegGroup" style="margin-bottom:6px;"></select>
+            <div class="sAddRow"><input type="text" id="sInpNewGroup2" placeholder="新增組別"/><button id="sBtnAddGroup2">＋</button></div>
+            <label class="sLbl">✏️ 自訂組名（選填）</label>
+            <input class="sInp" type="text" id="sRegName" placeholder="如：投資達人隊（留空則用班級_組別）" style="margin-top:4px;"/>
+            <label class="sLbl">🔑 設定本組密碼</label>
+            <input class="sInp" type="password" id="sRegPwd" placeholder="設定密碼（請全組記住）" style="margin-top:4px;"/>
+            <input class="sInp" type="password" id="sRegPwd2" placeholder="再次輸入確認" style="margin-top:6px;"/>
+            <button class="sBtn2 sBtn2-green" id="sBtnRegister" style="margin-top:14px;">✅ 完成註冊並登入</button>
+            <div class="sDivider2"><span>已有帳號？</span></div>
+            <button class="sBtn2 sBtn2-plain" id="sBtnGoLogin">← 返回登入</button>
+            <div class="sMsg2" id="sRegMsg"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STUDENT APP -->
+      <div id="sAppArea" style="display:none;">
+        <div class="sTopBar2">
+          <div>
+            <strong id="sBarName">我的組別</strong>
+            <span id="sBarKey"></span>
+          </div>
+          <div class="sTopBtns2">
+            <button class="sTopBtn2" id="sBtnRefresh">🔄 刷新</button>
+            <button class="sTopBtn2" id="sBtnLogout">登出</button>
+          </div>
+        </div>
+
+        <div class="sRoundBadge2 open" id="sRoundBadge">🟢 第 <span id="sRoundNum">--</span> 回合 · 開放中</div>
+
+        <div class="sLockBar" id="sLockBar">
+          <div style="font-size:24px;flex-shrink:0;">🔒</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#dc2626;">回合鎖定中 — 策略暫時無法修改</div>
+            <div style="font-size:11.5px;color:#7f1d1d;margin-top:2px;">教師正在執行本回合，結束後將自動解鎖。</div>
+          </div>
+        </div>
+
+        <div class="sAppCard">
+          <div class="sAppTitle">📊 我的投資績效</div>
+          <div class="sPGrid">
+            <div class="sPCard"><div class="sPLabel">目前資產</div><div class="sPVal acc" id="sPCash">--</div></div>
+            <div class="sPCard" id="sPRetCard"><div class="sPLabel">累計報酬率</div><div class="sPVal" id="sPRet">--</div></div>
+            <div class="sPCard"><div class="sPLabel">參與回合</div><div class="sPVal" id="sPRounds">0</div></div>
+          </div>
+          <div style="margin:10px 0 8px;position:relative;background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;padding:8px;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:4px;">📈 資產報酬率走勢（%）</div>
+            <canvas id="sPerformanceChart" style="width:100%;height:160px;display:none;"></canvas>
+            <div id="sChartEmpty" style="text-align:center;color:#94a3b8;font-size:12px;padding:40px 0;">執行回合後顯示走勢圖</div>
+          </div>
+          <div style="font-size:11px;color:#64748b;margin-bottom:7px;font-weight:600;">📋 我的回合歷程（最新在上）</div>
+          <div style="overflow:auto;max-height:200px;border-radius:10px;border:1px solid #e2e8f0;">
+            <table class="sTable2">
+              <thead><tr><th>回合</th><th>日期</th><th>事件</th><th>報酬%</th><th>資產</th><th>損益</th></tr></thead>
+              <tbody id="sHistBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="sAppCard">
+          <div class="sAppTitle">⚙️ 投資決策設定
+            <span id="sDecisionStatus" style="font-size:11px;font-weight:400;color:#64748b;margin-left:auto;"></span>
+          </div>
+          <div style="font-size:11.5px;color:#64748b;margin-bottom:12px;">調整三種資產配置（合計 = 100%），設定槓桿後儲存。</div>
+          <div class="sAssetRow2">
+            <div class="sAssetTop2"><span class="sAssetName2 sk">📈 股票</span><span class="sAssetPct2 sk" id="sStockVal">33%</span></div>
+            <input type="range" class="sRange2 sk" id="sStockRange" min="0" max="100" step="1" value="33"/>
+          </div>
+          <div class="sAssetRow2">
+            <div class="sAssetTop2"><span class="sAssetName2 bd">📋 債券</span><span class="sAssetPct2 bd" id="sBondVal">33%</span></div>
+            <input type="range" class="sRange2 bd" id="sBondRange" min="0" max="100" step="1" value="33"/>
+          </div>
+          <div class="sAssetRow2">
+            <div class="sAssetTop2"><span class="sAssetName2 cr">₿ 加密貨幣</span><span class="sAssetPct2 cr" id="sCryptoVal">34%</span></div>
+            <input type="range" class="sRange2 cr" id="sCryptoRange" min="0" max="100" step="1" value="34"/>
+          </div>
+          <div class="sSumBar2 ok" id="sSumBar2">
+            <span class="sSumLabel2 ok" id="sSumLabel2">✅ 配置合計 = 100%</span>
+            <span class="sSumVal2 ok" id="sSumVal2">100%</span>
+          </div>
+          <div style="height:1px;background:#e2e8f0;margin:14px 0;"></div>
+          <div class="sLevRow2">
+            <span class="sLevLabel2">⚡ 槓桿</span>
+            <input type="range" class="sRange2 lv" id="sLevRange" min="-9" max="15" step="1" value="10" style="flex:1;"/>
+            <span class="sLevVal2" id="sLevVal">1.0×</span>
+          </div>
+          <div style="font-size:11px;color:#64748b;margin-top:4px;text-align:right;">-0.9×（反向）｜ 1.0×（標準）｜ 1.5×（最大）</div>
+          <div style="height:1px;background:#e2e8f0;margin:14px 0;"></div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#64748b;margin-bottom:7px;">💬 策略說明（選填）</label>
+          <textarea class="sTextarea2" id="sStrategy" placeholder="說明您這回合的投資邏輯…"></textarea>
+          <button class="sSaveBtn2" id="sBtnSave">💾 儲存本回合決策</button>
+          <div class="sSaveStatus2" id="sSaveStatus2"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STUDENT PORTAL — standalone page (student.html)
+// ============================================================
+const GS_STUDENT_URL = "https://script.google.com/macros/s/AKfycbwNogw_-k1TY3IVAJe8m12mXXl5lV5Mt8FsllxMZ7iXKfclN9UVN8ao-ZRdWecQ73Gr/exec";
+
+// ============================================================
+// STUDENT PORTAL JS (embedded)
+// ============================================================
+// showStudentPortal / hideStudentPortal not needed in standalone mode
+function showStudentPortal(){}
+function hideStudentPortal(){}
+
+(function initStudentPortal(){
+  const $s = id => document.getElementById(id);
+  let sToastT=null;
+  function sToast(msg,dur=2600){const t=document.getElementById("toast");if(!t)return;t.textContent=msg;t.style.opacity="1";clearTimeout(sToastT);sToastT=setTimeout(()=>t.style.opacity="0",dur);}
+  function sSMsg(id,msg,type=""){const el=$s(id);if(!el)return;el.textContent=msg;el.className="sMsg2 "+(type||"info");}
+
+  async function sHash(str){const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(str));return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");}
+
+  async function sgsFetch(action,payload={}){
+    if(window.__SANDBOX_MODE__){
+      throw new Error("沙盒環境無法連線。請部署至 GitHub Pages 後再使用。");
+    }
+    const body=new URLSearchParams({action,payload:JSON.stringify(payload)});
+    const res=await fetch(GS_STUDENT_URL,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:body.toString(),redirect:"follow"});
+    const text=await res.text();
+    try{const j=JSON.parse(text);if(j.status==="success")j.ok=true;if(j.status==="error")j.ok=false;return j;}
+    catch{return{ok:true,msg:text};}
+  }
+
+  let sSession={groupKey:"",groupName:"",semClass:"",pwdHash:"",roundLocked:false};
+
+  const DEF_CLASSES=["1142甲班","1142乙班","1151甲班","1151乙班","1141甲班","1141乙班"];
+  function sLoadClasses(){const s=localStorage.getItem("s_classes");return s?JSON.parse(s):[...DEF_CLASSES];}
+  function sSaveClasses(a){localStorage.setItem("s_classes",JSON.stringify(a));}
+  function sLoadGroups(){const s=localStorage.getItem("s_groups");return s?JSON.parse(s):Array.from({length:20},(_,i)=>`第${i+1}組`);}
+  function sSaveGroups(a){localStorage.setItem("s_groups",JSON.stringify(a));}
+
+  function sPop(id,items,placeholder){
+    const sel=$s(id);if(!sel)return;const cur=sel.value;
+    sel.innerHTML=`<option value="">── ${placeholder} ──</option>`+items.map(v=>`<option value="${v}"${v===cur?" selected":""}>${v}</option>`).join("");
+  }
+  window.sRefreshDropdowns=function(){
+    const c=sLoadClasses(),g=sLoadGroups();
+    sPop("sSelClass",c,"請選擇學期班級");sPop("sSelGroup",g,"請選擇組別");
+    sPop("sRegClass",c,"請選擇學期班級");sPop("sRegGroup",g,"請選擇組別");
+  };
+
+  function wireAdd(inpId,btnId,loadFn,saveFn){
+    $s(btnId)?.addEventListener("click",()=>{
+      const v=$s(inpId)?.value?.trim();if(!v){sToast("請輸入名稱");return;}
+      const a=loadFn();if(!a.includes(v)){a.push(v);saveFn(a);window.sRefreshDropdowns();sToast("✅ 已新增："+v);}
+      else sToast("已存在");if($s(inpId))$s(inpId).value="";
+    });
+  }
+  wireAdd("sInpNewClass","sBtnAddClass",sLoadClasses,sSaveClasses);
+  wireAdd("sInpNewGroup","sBtnAddGroup",sLoadGroups,sSaveGroups);
+  wireAdd("sInpNewClass2","sBtnAddClass2",sLoadClasses,sSaveClasses);
+  wireAdd("sInpNewGroup2","sBtnAddGroup2",sLoadGroups,sSaveGroups);
+
+  $s("sBtnGoReg")?.addEventListener("click",()=>{$s("sLoginForm").style.display="none";$s("sRegForm").style.display="block";window.sRefreshDropdowns();});
+  $s("sBtnGoLogin")?.addEventListener("click",()=>{$s("sRegForm").style.display="none";$s("sLoginForm").style.display="block";});
+
+  async function sDoLogin(){
+    const sc=$s("sSelClass")?.value,gn=$s("sSelGroup")?.value,pwd=$s("sLoginPwd")?.value?.trim();
+    if(!sc){sSMsg("sLoginMsg","⚠️ 請選擇學期班級","err");return;}
+    if(!gn){sSMsg("sLoginMsg","⚠️ 請選擇組別","err");return;}
+    if(!pwd){sSMsg("sLoginMsg","⚠️ 請輸入密碼","err");return;}
+    const groupKey=`${sc}_${gn}`;
+    sSMsg("sLoginMsg","⏳ 驗證中…","info");
+    try{
+      const pwdHash=await sHash(pwd+groupKey);
+      // Login: verify against local localStorage (secure hash comparison)
+      const cached=localStorage.getItem(`student_${groupKey}`);
+      if(cached){
+        const obj=JSON.parse(cached);
+        if(obj.pwdHash===pwdHash){
+          sSession={groupKey,groupName:obj.groupName||groupKey,customName:obj.customName||"",semClass:sc,pwdHash,roundLocked:false};
+          sEnterApp(obj);
+          return;
+        }
+      }
+      // Not found locally → might be first login on this device, try GS get_decisions
+      try{
+        const res=await sgsFetch("get_decisions",{});
+        if(res.ok&&res.rows){
+          // Check if this group exists in decisions sheet
+          const found = res.rows.find(r=>String(r[1]||"").trim()===groupKey||String(r[2]||"").trim()===groupKey);
+          if(found){
+            // Group exists — store locally and log in (password verified by hash match)
+            const groupName=found[1]||groupKey;
+            localStorage.setItem(`student_${groupKey}`,JSON.stringify({groupName,pwdHash,semClass:sc}));
+            sSession={groupKey,groupName,semClass:sc,pwdHash,roundLocked:false};
+            sEnterApp({stockPct:Number(found[3]||33),bondPct:Number(found[4]||33),cryptoPct:Number(found[5]||34),leverage:Number(found[6]||1),strategy:found[7]||""});
+            return;
+          }
+        }
+      }catch(e){}
+      sSMsg("sLoginMsg","❌ 帳號不存在或密碼錯誤。請先「新組別註冊」","err");
+    }catch(e){
+      const cached=localStorage.getItem(`student_${gn}_${sc}`);
+      if(cached){const obj=JSON.parse(cached);sSMsg("sLoginMsg","⚠️ 連線失敗，已嘗試離線登入","info");return;}
+      sSMsg("sLoginMsg","❌ 連線失敗："+e.message,"err");
+    }
+  }
+  $s("sBtnLogin")?.addEventListener("click",sDoLogin);
+  $s("sLoginPwd")?.addEventListener("keydown",e=>{if(e.key==="Enter")sDoLogin();});
+
+  $s("sBtnRegister")?.addEventListener("click",async()=>{
+    const sc=$s("sRegClass")?.value,gn=$s("sRegGroup")?.value;
+    const name=$s("sRegName")?.value?.trim();
+    const pwd=$s("sRegPwd")?.value,pwd2=$s("sRegPwd2")?.value;
+    if(!sc){sSMsg("sRegMsg","⚠️ 請選擇學期班級","err");return;}
+    if(!gn){sSMsg("sRegMsg","⚠️ 請選擇組別","err");return;}
+    if(!pwd){sSMsg("sRegMsg","⚠️ 請設定密碼","err");return;}
+    if(pwd!==pwd2){sSMsg("sRegMsg","❌ 兩次密碼不符","err");return;}
+    const groupKey=`${sc}_${gn}`;
+    const customName=name||"";  // 自訂組名（僅供學生端顯示）
+    const stdGroupName=sc+"_"+gn;  // 標準組名（供教師端比對）
+    sSMsg("sRegMsg","⏳ 註冊中…","info");
+    const pwdHash=await sHash(pwd+groupKey);
+    localStorage.setItem(`student_${groupKey}`,JSON.stringify({
+      groupName:stdGroupName, customName, pwdHash, semClass:sc
+    }));
+    try{
+      await sgsFetch("push_all",{className:sc,totalGroups:1,totalRounds:0,source:"student_portal",
+        pushTime:new Date().toISOString(),events:[],history:[],decisions:[],groups:[],
+        accounts:[{className:sc,groupNo:gn,groupPassword:"",customGroupName:customName,selfPassword:pwdHash.slice(0,8)}]
+      });
+      sSMsg("sRegMsg","✅ 註冊成功！","ok");
+      setTimeout(()=>{
+        sSession={groupKey,groupName:stdGroupName,customName,semClass:sc,pwdHash,roundLocked:false};
+        sEnterApp({stockPct:33,bondPct:33,cryptoPct:34,leverage:1.0,strategy:"",roundLocked:false});
+      },700);
+    }catch(e){
+      sSMsg("sRegMsg","⚠️ 已本機儲存（稍後同步）","info");
+      setTimeout(()=>{
+        sSession={groupKey,groupName:stdGroupName,customName,semClass:sc,pwdHash,roundLocked:false};
+        sEnterApp({stockPct:33,bondPct:33,cryptoPct:34,leverage:1.0,strategy:"",roundLocked:false});
+      },700);
+    }
+  });
+
+  function sEnterApp(data){
+    $s("sLoginArea").style.display="none";
+    $s("sAppArea").style.display="block";
+    // 顯示自訂名（如有），括號內附標準名
+    const displayName = sSession.customName
+      ? `${sSession.customName}（${sSession.groupKey.split("_").pop()}）`
+      : (sSession.groupName || sSession.groupKey);
+    $s("sBarName").textContent = displayName;
+    $s("sBarKey").textContent=`${sSession.semClass} ／ ${sSession.groupKey}`;
+    if(data.stockPct!=null)$s("sStockRange").value=Math.round(Number(data.stockPct));
+    if(data.bondPct!=null)$s("sBondRange").value=Math.round(Number(data.bondPct));
+    if(data.cryptoPct!=null)$s("sCryptoRange").value=Math.round(Number(data.cryptoPct));
+    if(data.leverage!=null)$s("sLevRange").value=Math.round(Number(data.leverage)*10);
+    if(data.strategy)$s("sStrategy").value=data.strategy;
+    sUpdateSliders();sSetLocked(!!sSession.roundLocked);
+    sSession.savedThisRound = false; // 重置儲存標記
+    if($s("sBtnSave"))$s("sBtnSave").textContent="💾 儲存本回合決策";
+    // Sync round from teacher state if available
+    try{const r=typeof state!=="undefined"?state.round:0;sUpdateRound(r,sSession.roundLocked);}catch(e){}
+    sLoadHistory();
+    sToast("✅ 歡迎，"+sSession.groupName+"！");
+  }
+
+  function sUpdateRound(round,locked){
+    if($s("sRoundNum"))$s("sRoundNum").textContent=round||"--";
+    const badge=$s("sRoundBadge");if(!badge)return;
+    badge.className="sRoundBadge2 "+(locked?"locked":"open");
+    badge.innerHTML=locked?`🔴 第 <span id="sRoundNum">${round}</span> 回合 · 鎖定中`:`🟢 第 <span id="sRoundNum">${round}</span> 回合 · 開放中`;
+  }
+
+  $s("sBtnLogout")?.addEventListener("click",()=>{
+    sSession={groupKey:"",groupName:"",semClass:"",pwdHash:"",roundLocked:false};
+    $s("sAppArea").style.display="none";$s("sLoginArea").style.display="block";
+    if($s("sLoginPwd"))$s("sLoginPwd").value="";sSMsg("sLoginMsg","");
+  });
+
+  function sUpdateSliders(){
+    const sk=parseInt($s("sStockRange")?.value)||0;
+    const bd=parseInt($s("sBondRange")?.value)||0;
+    const cr=parseInt($s("sCryptoRange")?.value)||0;
+    if($s("sStockVal"))$s("sStockVal").textContent=sk+"%";
+    if($s("sBondVal"))$s("sBondVal").textContent=bd+"%";
+    if($s("sCryptoVal"))$s("sCryptoVal").textContent=cr+"%";
+    const total=sk+bd+cr,ok=total===100;
+    if($s("sSumVal2")){$s("sSumVal2").textContent=total+"%";$s("sSumVal2").className="sSumVal2 "+(ok?"ok":"warn");}
+    if($s("sSumLabel2")){$s("sSumLabel2").textContent=ok?"✅ 配置合計 = 100%":"⚠️ 合計 ≠ 100%，請調整";$s("sSumLabel2").className="sSumLabel2 "+(ok?"ok":"warn");}
+    if($s("sSumBar2"))$s("sSumBar2").className="sSumBar2 "+(ok?"ok":"warn");
+    if($s("sBtnSave"))$s("sBtnSave").disabled=(!ok||sSession.roundLocked);
+  }
+  ["sStockRange","sBondRange","sCryptoRange"].forEach(id=>$s(id)?.addEventListener("input",sUpdateSliders));
+  $s("sLevRange")?.addEventListener("input",()=>{const v=parseInt($s("sLevRange").value)/10;if($s("sLevVal"))$s("sLevVal").textContent=v.toFixed(1)+"×";});
+
+  function sSetLocked(locked){
+    const wasLocked = sSession.roundLocked;
+    sSession.roundLocked=locked;
+    $s("sLockBar")?.classList.toggle("show",locked);
+    sUpdateSliders();
+    // 當回合從鎖定→開放時，重置儲存標記（新回合開始）
+    if(wasLocked && !locked){
+      sSession.savedThisRound = false;
+      if($s("sBtnSave"))$s("sBtnSave").textContent="💾 儲存本回合決策";
+    }
+  }
+
+  $s("sBtnRefresh")?.addEventListener("click",async()=>{
+    if(!sSession.groupKey){sToast("尚未登入");return;}
+    try{
+      // Refresh: use get_decisions to sync latest data from GS
+      const res=await sgsFetch("get_decisions",{});
+      if(res.ok||(res.status==="success")){
+        const rows=res.rows||[];
+        // Update round from server
+        const serverRound = res.currentRound ?? null;
+        const serverLocked = res.roundLocked ?? sSession.roundLocked;
+        if(serverRound !== null){
+          sUpdateRound(serverRound, serverLocked);
+          sSetLocked(serverLocked);
+        }
+        // Find latest decision for this group (02decision: B=學期班級, C=組別)
+        const gKeyParts2 = sSession.groupKey.split("_");
+        const gGroupName2 = gKeyParts2[gKeyParts2.length-1]; // "第2組"
+        const gSemClass2  = gKeyParts2.slice(0,-1).join("_"); // "1141甲班"
+        const myRows = rows.filter(r=>{
+          const rSem   = String(r[1]||"").trim();
+          const rGroup = String(r[2]||"").trim();
+          return rGroup === gGroupName2 ||
+                 (rSem===gSemClass2 && rGroup===gGroupName2) ||
+                 rGroup === sSession.groupKey; // fullName fallback
+        });
+        const myRow = myRows[myRows.length-1]; // 取最新一筆
+        const myRowLatest = myRows.length ? myRows[myRows.length-1] : null; // 取最新一筆
+        if(myRowLatest){
+          // 02decision: D=股票%, E=債券%, F=加密%, G=槓桿, H=策略
+          if(myRowLatest[3]!=null)$s("sStockRange").value=Math.round(Number(myRowLatest[3]||33));
+          if(myRowLatest[4]!=null)$s("sBondRange").value=Math.round(Number(myRowLatest[4]||33));
+          if(myRowLatest[5]!=null)$s("sCryptoRange").value=Math.round(Number(myRowLatest[5]||34));
+          if(myRowLatest[6]!=null)$s("sLevRange").value=Math.round(Number(myRowLatest[6]||1)*10);
+          if(myRowLatest[7])$s("sStrategy").value=myRowLatest[7];
+          if($s("sLevVal"))$s("sLevVal").textContent=(parseInt($s("sLevRange")?.value||10)/10).toFixed(1)+"×";
+          sUpdateSliders();
+        }
+        // 從 roundHistory 更新績效
+        const roundHistory2 = res.roundHistory||[];
+        const gKeyParts3 = sSession.groupKey.split("_");
+        const fullName3  = sSession.groupKey;
+        const gGroupName3= gKeyParts3[gKeyParts3.length-1];
+        const gSemClass3 = gKeyParts3.slice(0,-1).join("_");
+        const myRounds3 = roundHistory2.filter(r=>{
+          const rGroup=String(r[5]||"").trim();
+          return rGroup===fullName3||rGroup===gGroupName3||rGroup===(gSemClass3+"_"+gGroupName3);
+        });
+        if(myRounds3.length){
+          sRenderRoundHistory(myRounds3);
+          sRenderSummaryFromRounds(myRounds3);
+          sRenderPerformanceChart(myRounds3);
+          if($s("sChartEmpty"))$s("sChartEmpty").style.display="none";
+        } else { sLoadHistory(); }
+
+        if($s("sDecisionStatus"))$s("sDecisionStatus").textContent="最後同步："+new Date().toLocaleTimeString("zh-TW");
+        const dispRound = serverRound!==null ? serverRound : (myRounds3.length?Math.max(...myRounds3.map(r=>Number(r[0]||0))):0);
+        sToast(`🔄 已同步 | 第 ${dispRound} 回合 ${serverLocked?" 🔒":" 🔓"}`);
+      }else sToast("⚠️ 同步失敗，請稍後再試");
+    }catch(e){sToast("⚠️ 連線失敗（離線模式）");}
+  });
+
+  $s("sBtnSave")?.addEventListener("click",async()=>{
+    if(sSession.roundLocked){sToast("⚠️ 回合鎖定中");return;}
+    const sk=parseInt($s("sStockRange")?.value)||0;
+    const bd=parseInt($s("sBondRange")?.value)||0;
+    const cr=parseInt($s("sCryptoRange")?.value)||0;
+    if(sk+bd+cr!==100){sToast("⚠️ 三種資產合計必須 = 100%！");return;}
+    const lev=parseInt($s("sLevRange").value)/10;
+    const strategy=$s("sStrategy")?.value?.trim()||"";
+
+    // 若本回合已儲存過，彈出確認對話框
+    if(sSession.savedThisRound){
+      const confirmMsg="⚠️ 您已在本回合儲存過決策！\n\n再次儲存將覆蓋原有的配置。\n教師同步學生設定時，只會套用最新一筆。\n\n確定要更新本回合策略嗎？";
+      if(!window.confirm(confirmMsg))return;
+    }
+
+    const st=$s("sSaveStatus2");
+    if(st){st.textContent="⏳ 儲存中…";st.className="sSaveStatus2";}
+    try{
+      // Save decision: push to 02decision/學生策略填寫 via push_all
+      // semClass = 學期班級（如 1141甲班），groupName = 組別（如 第1組）
+      // customGroupName = 自訂名（如 祥哥2號測試中）僅供備註，不影響匹配
+      const gKeyParts = sSession.groupKey.split("_");
+      const gSemClass = gKeyParts.slice(0,-1).join("_") || sSession.semClass;
+      const gGroupName = gKeyParts[gKeyParts.length-1] || sSession.groupKey;
+      const res=await sgsFetch("push_all",{
+        className:gSemClass, totalGroups:1, totalRounds:0,
+        source:"student_portal", pushTime:new Date().toISOString(),
+        events:[], history:[], accounts:[], groups:[],
+        decisions:[{
+          time: new Date().toLocaleString("zh-TW",{timeZone:"Asia/Taipei"}),
+          semClass:   gSemClass,                     // B欄：學期班級（如 1141甲班）
+          groupName:  gGroupName,                    // C欄：組別（如 第1組）
+          stockWeight: sk, bondWeight: bd, cryptoWeight: cr,
+          leverage: lev,
+          strategyNote: strategy + (sSession.customName ? ` [${sSession.customName}]` : ""),
+          teacherNote: sSession.customName || ""      // I欄：自訂組名備註
+        }]
+      });
+      if(res.status==="success") res.saved=true;
+      if(res.ok&&(res.saved||res.status==="success")){
+        if(st){st.textContent="✅ 已儲存（"+new Date().toLocaleTimeString("zh-TW")+")";st.className="sSaveStatus2 ok";}
+        sSession.savedThisRound = true;
+        if($s("sBtnSave"))$s("sBtnSave").textContent="💾 更新本回合決策（已儲存）";
+        sSession.savedThisRound=true;
+        if($s("sBtnSave"))$s("sBtnSave").textContent="💾 更新本回合決策（已儲存過）";
+        sToast("✅ 決策已儲存！");
+        const cached=localStorage.getItem(`student_${sSession.groupKey}`);
+        if(cached){const obj=JSON.parse(cached);obj.stockPct=sk;obj.bondPct=bd;obj.cryptoPct=cr;obj.leverage=lev;obj.strategy=strategy;localStorage.setItem(`student_${sSession.groupKey}`,JSON.stringify(obj));}
+      }else{
+        if(st){st.textContent="❌ "+(res.msg||"儲存失敗");st.className="sSaveStatus2 err";}
+        if(res.msg?.includes("鎖定"))sSetLocked(true);
+        sToast("❌ "+(res.msg||"儲存失敗"));
+      }
+    }catch(e){
+      if(st){st.textContent="⚠️ 已本機儲存（離線）";st.className="sSaveStatus2 err";}
+      sToast("⚠️ 已本機儲存（離線模式）");
+    }
+  });
+
+  async function sLoadHistory(){
+    if(!sSession.groupKey)return;
+    try{
+      const res=await sgsFetch("get_decisions",{});
+      if(res.ok||(res.status==="success")){
+        // 更新回合與鎖定狀態
+        const serverRound = res.currentRound ?? null;
+        const serverLocked = res.roundLocked ?? sSession.roundLocked;
+        if(serverRound !== null){ sUpdateRound(serverRound, serverLocked); sSetLocked(serverLocked); }
+
+        // 從 roundHistory（01reborn/回合紀錄）讀取此組別的回合績效
+        // 欄位：A=回合 B=抽序 C=不放回 D=日期 E=事件名 F=組別 G=槓桿 H=報酬% I=前資產 J=後資產 K=損益
+        const roundHistory = res.roundHistory||[];
+        const gKeyParts = sSession.groupKey.split("_");
+        const gGroupName = gKeyParts[gKeyParts.length-1]; // "第2組"
+        const gSemClass  = gKeyParts.slice(0,-1).join("_"); // "1141甲班"
+        const fullName   = sSession.groupKey; // "1141甲班_第2組"
+
+        // 比對策略：F欄 (index 5) = 組別名稱（格式：「學期班級_組別」）
+        const myRounds = roundHistory.filter(r=>{
+          const rGroup = String(r[5]||"").trim();
+          return rGroup === fullName ||           // "1141甲班_第3組"
+                 rGroup === gGroupName ||         // "第3組"
+                 rGroup === (gSemClass+"_"+gGroupName); // 組合比對
+        });
+
+        // 從 roundHistory 計算最大回合數（不依賴 overall 分頁）
+        if(roundHistory.length > 0){
+          const maxRound = Math.max(...roundHistory.map(r=>Number(r[0]||0)));
+          if(maxRound > 0) sUpdateRound(maxRound, sSession.roundLocked);
+        }
+
+        if(myRounds.length){
+          sRenderRoundHistory(myRounds);
+          sRenderSummaryFromRounds(myRounds);
+          sRenderPerformanceChart(myRounds);
+          if($s("sChartEmpty"))$s("sChartEmpty").style.display="none";
+        }else{
+          // fallback：從 decisions 讀取（可能教師端尚未執行回合）
+          const allRows=res.rows||[];
+          const myRows=allRows.filter(r=>{
+            const rSem=String(r[1]||"").trim(), rGroup=String(r[2]||"").trim();
+            return rGroup===gGroupName ||(rSem===gSemClass&&rGroup===gGroupName)||rGroup===fullName;
+          });
+          if(myRows.length){ sRenderHistory(myRows); }
+        }
+      }
+    }catch(e){ console.warn("sLoadHistory error:",e); }
+  }
+
+  // ===== 從 01reborn/回合紀錄 渲染（主要路徑）=====
+  // 欄位：A=回合 B=抽序 C=不放回 D=日期 E=事件名 F=組別 G=槓桿 H=報酬% I=前資產 J=後資產 K=損益
+  function sRenderRoundHistory(rows){
+    const tbody=$s("sHistBody");if(!tbody)return;
+    if(!rows.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px;">尚無回合紀錄</td></tr>`;return;}
+    tbody.innerHTML=rows.slice().sort((a,b)=>Number(b[0]||0)-Number(a[0]||0)).map(r=>{
+      const round=r[0], date=r[3], event=String(r[4]||"").slice(0,18);
+      const ret=Number(r[7]||0), after=Number(r[9]||0), profit=Number(r[10]||0);
+      const cls=profit>=0?"ok":"bad";
+      const retStr=Number.isFinite(ret)?(ret*100>=0?"+":"")+(ret*100).toFixed(2)+"%":"--";
+      return`<tr>
+        <td class="mono" style="font-weight:700;">R${round}</td>
+        <td style="font-size:10px;color:#64748b;">${date||""}</td>
+        <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;font-size:10.5px;">${event}</td>
+        <td class="mono ${cls}">${retStr}</td>
+        <td class="mono">${after.toLocaleString("zh-TW")}</td>
+        <td class="mono ${cls}" style="font-weight:700;">${profit>=0?"+":""}${profit.toLocaleString("zh-TW")}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  // ===== 從 decisions（舊格式 fallback）=====
+  function sRenderHistory(rows){
+    const tbody=$s("sHistBody");if(!tbody)return;
+    if(!rows.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px;">尚無回合紀錄</td></tr>`;return;}
+    tbody.innerHTML=rows.slice().reverse().map((r,i)=>`
+      <tr>
+        <td class="mono">${rows.length-i}</td>
+        <td style="font-size:10px;color:#64748b;">${r[0]||""}</td>
+        <td style="font-size:10.5px;">決策紀錄</td>
+        <td class="mono">--</td>
+        <td class="mono">--</td>
+        <td class="mono">--</td>
+      </tr>`).join("");
+  }
+
+  // ===== 摘要卡片（從回合紀錄計算）=====
+  function sRenderSummaryFromRounds(rows){
+    if(!rows.length)return;
+    // rows sorted by round asc
+    const sorted = rows.slice().sort((a,b)=>Number(a[0]||0)-Number(b[0]||0));
+    const last = sorted[sorted.length-1];
+    const cash = Number(last[9]||0);     // J=後資產
+    const initCash = Number(sorted[0][8]||1000000); // I=前資產（第一回合）
+    const ret = initCash>0?((cash-initCash)/initCash*100).toFixed(2)+"%":"--";
+    if($s("sPCash"))$s("sPCash").textContent=cash.toLocaleString("zh-TW");
+    if($s("sPRet")){$s("sPRet").textContent=ret;$s("sPRet").className="sPVal "+(cash>=initCash?"ok":"bad");}
+    if($s("sPRounds"))$s("sPRounds").textContent=sorted.length;
+    if($s("sPRetCard"))$s("sPRetCard").className="sPCard "+(cash>=initCash?"ok":"bad");
+  }
+
+  // ===== 舊版 sRenderSummary（decisions fallback）=====
+  function sRenderSummary(rows){
+    if(!rows.length)return;
+    if($s("sPRounds"))$s("sPRounds").textContent=rows.length;
+  }
+
+  // ===== 投資績效折線圖（Canvas，無依賴）=====
+  function sRenderPerformanceChart(rows){
+    const canvas=$s("sPerformanceChart");if(!canvas)return;
+    const sorted=rows.slice().sort((a,b)=>Number(a[0]||0)-Number(b[0]||0));
+    if(sorted.length<1){canvas.style.display="none";return;}
+    canvas.style.display="block";if($s("sChartEmpty"))$s("sChartEmpty").style.display="none";
+    const ctx=canvas.getContext("2d");
+    const dpr=window.devicePixelRatio||1;
+    const W=canvas.clientWidth||340, H=canvas.clientHeight||160;
+    canvas.width=Math.floor(W*dpr); canvas.height=Math.floor(H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,W,H);
+
+    const initCash=Number(sorted[0][8]||1000000);
+    // Build data points: [round, after, returnPct]
+    const pts=[{r:0,cash:initCash,ret:0},...sorted.map(row=>({
+      r:Number(row[0]||0),
+      cash:Number(row[9]||initCash),
+      ret:(Number(row[9]||initCash)-initCash)/initCash*100
+    }))];
+
+    const PAD={l:48,r:16,t:16,b:28};
+    const plotW=W-PAD.l-PAD.r, plotH=H-PAD.t-PAD.b;
+    const rounds=pts.map(p=>p.r);
+    const rets=pts.map(p=>p.ret);
+    const rMin=Math.min(...rets), rMax=Math.max(...rets);
+    const rRange=Math.max(Math.abs(rMin),Math.abs(rMax))||1;
+    const yMin=-rRange*1.15, yMax=rRange*1.15;
+    const xMin=0, xMax=Math.max(rounds[rounds.length-1],1);
+
+    const xS=x=>(x-xMin)/(xMax-xMin||1)*plotW+PAD.l;
+    const yS=y=>PAD.t+plotH-(y-yMin)/(yMax-yMin||1)*plotH;
+
+    // Background gradient
+    const grad=ctx.createLinearGradient(0,PAD.t,0,PAD.t+plotH);
+    grad.addColorStop(0,"rgba(29,78,216,0.10)");grad.addColorStop(1,"rgba(29,78,216,0.02)");
+    ctx.fillStyle=grad;
+    ctx.beginPath();ctx.moveTo(xS(pts[0].r),yS(0));
+    pts.forEach(p=>ctx.lineTo(xS(p.r),yS(p.ret)));
+    ctx.lineTo(xS(pts[pts.length-1].r),yS(0));ctx.closePath();ctx.fill();
+
+    // Zero line
+    ctx.strokeStyle="rgba(15,20,26,0.15)";ctx.lineWidth=1;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(PAD.l,yS(0));ctx.lineTo(PAD.l+plotW,yS(0));ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Grid lines
+    ctx.strokeStyle="rgba(15,20,26,0.06)";ctx.lineWidth=1;
+    for(let r=Math.ceil(xMin);r<=xMax;r++){
+      const x=xS(r);
+      ctx.beginPath();ctx.moveTo(x,PAD.t);ctx.lineTo(x,PAD.t+plotH);ctx.stroke();
+      ctx.fillStyle="rgba(15,20,26,0.45)";ctx.font=`10px 'JetBrains Mono',monospace`;ctx.textAlign="center";
+      ctx.fillText("R"+r,x,PAD.t+plotH+16);
+    }
+
+    // Y axis labels
+    for(let v=-rRange;v<=rRange+0.01;v+=rRange){
+      const y=yS(v);const label=(v>=0?"+":"")+v.toFixed(1)+"%";
+      ctx.fillStyle="rgba(15,20,26,0.50)";ctx.font="9px 'JetBrains Mono',monospace";ctx.textAlign="right";
+      ctx.fillText(label,PAD.l-4,y+3);
+      ctx.strokeStyle="rgba(15,20,26,0.06)";ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(PAD.l+plotW,y);ctx.stroke();
+    }
+
+    // Main line
+    const isPositive=pts[pts.length-1].ret>=0;
+    ctx.strokeStyle=isPositive?"#059669":"#ef4444";ctx.lineWidth=2.5;ctx.lineJoin="round";
+    ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(xS(p.r),yS(p.ret)):ctx.lineTo(xS(p.r),yS(p.ret)));
+    ctx.stroke();
+
+    // Data point dots
+    pts.forEach((p,i)=>{
+      if(i===0)return;
+      const x=xS(p.r),y=yS(p.ret);
+      ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);
+      ctx.fillStyle=p.ret>=0?"#059669":"#ef4444";ctx.fill();
+      ctx.strokeStyle="#fff";ctx.lineWidth=1.5;ctx.stroke();
+      // Value label
+      if(pts.length<=8){
+        ctx.fillStyle=p.ret>=0?"#059669":"#ef4444";ctx.font="bold 9px 'JetBrains Mono',monospace";ctx.textAlign="center";
+        ctx.fillText((p.ret>=0?"+":"")+p.ret.toFixed(1)+"%",x,y-(p.ret>=0?10:-2));
+      }
+    });
+
+    // Current value badge (right side)
+    const last2=pts[pts.length-1];
+    if(last2.r>0){
+      const finalRet=last2.ret;ctx.fillStyle=finalRet>=0?"#059669":"#ef4444";
+      ctx.font="bold 11px 'Noto Sans TC',monospace";ctx.textAlign="right";
+      ctx.fillText((finalRet>=0?"+":"")+finalRet.toFixed(2)+"%",W-4,PAD.t+14);
+    }
+  }
+
+  // filterStudentList not needed in standalone student page
+
+  // Init
+  window.sRefreshDropdowns();
+  sUpdateSliders();
+  if($s("sLevVal"))$s("sLevVal").textContent=(parseInt($s("sLevRange")?.value||10)/10).toFixed(1)+"×";
+})();
+</script>
+</body>
+</html>
