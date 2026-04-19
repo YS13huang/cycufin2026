@@ -1,6 +1,6 @@
 # cycu-finance-simulation
 make students have a happy course
-# 🎓 Dr. Huang 金融投資決策模擬遊戲 # 🎓 Dr. Huang 金融投資決策模擬遊戲
+# 🎓 Dr. Huang 金融投資決策模擬遊戲
 # 🎓 Dr. Huang 金融投資決策模擬遊戲
 > 中原大學｜黃胤祥老師｜同學操作說明
 ---
