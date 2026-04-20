@@ -559,6 +559,9 @@ function hideStudentPortal(){}
           if($s("sChartEmpty"))$s("sChartEmpty").style.display="none";
         } else { sLoadHistory(); }
 
+        // 同步更新班級排名（使用完整 roundHistory2）
+        if(roundHistory2.length) sProcessClassRankData(roundHistory2);
+
         if($s("sDecisionStatus"))$s("sDecisionStatus").textContent="最後同步："+new Date().toLocaleTimeString("zh-TW");
         const dispRound = serverRound!==null ? serverRound : (myRounds3.length?Math.max(...myRounds3.map(r=>Number(r[0]||0))):0);
         sToast(`🔄 已同步 | 第 ${dispRound} 回合 ${serverLocked?" 🔒":" 🔓"}`);
