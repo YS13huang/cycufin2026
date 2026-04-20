@@ -103,6 +103,24 @@
     .sSaveBtn2:disabled{opacity:.35;cursor:not-allowed;box-shadow:none;}
     .sSaveStatus2{text-align:center;font-size:12px;min-height:20px;margin-top:8px;color:#64748b;}
     .sSaveStatus2.ok{color:#059669;font-weight:600;} .sSaveStatus2.err{color:#ef4444;}
+
+    /* ===== Class Ranking Panel ===== */
+    .sRankCard{background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.06);padding:18px;margin-bottom:12px;}
+    .sRankTitle{font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;display:flex;align-items:center;gap:8px;justify-content:space-between;}
+    .sRankToolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+    .sRankToggleBtn{padding:5px 10px;border-radius:7px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;cursor:pointer;font-family:inherit;transition:all .12s;white-space:nowrap;}
+    .sRankToggleBtn.active{background:#1d4ed8;color:#fff;border-color:transparent;}
+    .sRankToggleBtn:hover:not(.active){background:#f1f5f9;}
+    .sRankTable{width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:10px;}
+    .sRankTable th,.sRankTable td{border-bottom:1px solid #e2e8f0;padding:6px 6px;text-align:left;}
+    .sRankTable th{font-weight:700;color:#64748b;font-size:10.5px;}
+    .sRankTable tr.sMyRow td{background:rgba(29,78,216,0.05);font-weight:700;}
+    .sRankTable tr.sMyRow td:first-child{border-left:3px solid #1d4ed8;}
+    .sRankBadge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:10px;font-weight:700;background:#e2e8f0;color:#64748b;}
+    .sRankBadge.rank1{background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;}
+    .sRankBadge.rank2{background:linear-gradient(135deg,#94a3b8,#cbd5e1);color:#fff;}
+    .sRankBadge.rank3{background:linear-gradient(135deg,#b45309,#d97706);color:#fff;}
+    .sRankChartWrap{background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-radius:12px;border:1px solid #e2e8f0;padding:8px;position:relative;overflow:hidden;}
   </style>
 </head>
 <body>
@@ -244,7 +262,33 @@
           <button class="sSaveBtn2" id="sBtnSave">💾 Save This Round's Decision</button>
           <div class="sSaveStatus2" id="sSaveStatus2"></div>
         </div>
-      </div>
+
+        <!-- Class Performance Ranking -->
+        <div class="sRankCard" id="sRankCardWrap">
+          <div class="sRankTitle">
+            <span>🏆 Class Performance Ranking (Last Round)</span>
+            <button class="sRankToggleBtn" id="sBtnRefreshRank" style="font-size:11px;">🔄 Refresh</button>
+          </div>
+          <div class="sRankToolbar">
+            <button class="sRankToggleBtn active" id="sBtnShowAllGroups">👁 Show All Groups</button>
+            <button class="sRankToggleBtn" id="sBtnHideOthers">🙈 My Group Only</button>
+            <span style="font-size:11px;color:#64748b;margin-left:4px;" id="sRankRoundLabel"></span>
+          </div>
+          <div class="sRankChartWrap" style="margin-bottom:10px;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:4px;">📈 All Groups — Cumulative Return % over Rounds</div>
+            <canvas id="sClassChart" style="width:100%;height:180px;display:block;"></canvas>
+            <div id="sClassChartEmpty" style="text-align:center;color:#94a3b8;font-size:12px;padding:40px 0;">Class round history will appear here</div>
+          </div>
+          <div style="overflow:auto;max-height:240px;border-radius:10px;border:1px solid #e2e8f0;">
+            <table class="sRankTable">
+              <thead><tr><th>Rank</th><th>Group</th><th>Latest Assets</th><th>Total Return %</th><th>Rounds</th></tr></thead>
+              <tbody id="sRankBody"></tbody>
+            </table>
+          </div>
+          <div style="font-size:10.5px;color:#94a3b8;margin-top:6px;" id="sRankHint">🔵 Blue border = your group</div>
+        </div>
+
+      </div><!-- sAppArea -->
 
     </div>
   </div>
@@ -625,6 +669,8 @@ function hideStudentPortal(){}
           });
           if(myRows.length){ sRenderHistory(myRows); }
         }
+        // Also load class ranking
+        sProcessClassRankData(roundHistory);
       }
     }catch(e){ console.warn("sLoadHistory error:",e); }
   }
@@ -780,6 +826,136 @@ function hideStudentPortal(){}
   }
 
   // filterStudentList not needed in standalone student page
+
+  // ===== Class Ranking Feature =====
+  let sRankShowAll = true;
+  let sAllGroupsData = [];
+
+  $s("sBtnShowAllGroups")?.addEventListener("click",()=>{
+    sRankShowAll=true;
+    $s("sBtnShowAllGroups")?.classList.add("active");
+    $s("sBtnHideOthers")?.classList.remove("active");
+    sRenderClassChart();sRenderRankTable();
+  });
+  $s("sBtnHideOthers")?.addEventListener("click",()=>{
+    sRankShowAll=false;
+    $s("sBtnHideOthers")?.classList.add("active");
+    $s("sBtnShowAllGroups")?.classList.remove("active");
+    sRenderClassChart();sRenderRankTable();
+  });
+  $s("sBtnRefreshRank")?.addEventListener("click",sLoadClassRank);
+
+  async function sLoadClassRank(){
+    if(!sSession.groupKey)return;
+    try{
+      const res=await sgsFetch("get_decisions",{});
+      if(res.ok||(res.status==="success")){
+        sProcessClassRankData(res.roundHistory||[]);
+      }
+    }catch(e){console.warn("sLoadClassRank error:",e);}
+  }
+
+  function sProcessClassRankData(roundHistory){
+    if(!roundHistory.length)return;
+    const groupMap={};
+    for(const r of roundHistory){
+      const gn=String(r[5]||"").trim();if(!gn)continue;
+      if(!groupMap[gn])groupMap[gn]=[];
+      groupMap[gn].push(r);
+    }
+    const groupArr=[];
+    for(const [gn,rows] of Object.entries(groupMap)){
+      const sorted=rows.slice().sort((a,b)=>Number(a[0]||0)-Number(b[0]||0));
+      const initCash=Number(sorted[0][8]||1000000);
+      const finalCash=Number(sorted[sorted.length-1][9]||initCash);
+      const totalReturn=initCash>0?(finalCash-initCash)/initCash:0;
+      const maxRound=Math.max(...sorted.map(r=>Number(r[0]||0)));
+      groupArr.push({groupName:gn,rows:sorted,initCash,finalCash,totalReturn,roundCount:sorted.length,maxRound});
+    }
+    groupArr.sort((a,b)=>b.totalReturn-a.totalReturn);
+    sAllGroupsData=groupArr;
+    if(groupArr.length&&$s("sRankRoundLabel")){
+      const maxR=Math.max(...groupArr.map(g=>g.maxRound));
+      $s("sRankRoundLabel").textContent=`(Through Round ${maxR}, ${groupArr.length} groups)`;
+    }
+    sRenderClassChart();
+    sRenderRankTable();
+  }
+
+  function sIsMyGroup(gn){
+    if(!sSession.groupKey)return false;
+    return gn===sSession.groupKey||(sSession.groupKey.endsWith("_"+gn))||(gn===sSession.groupKey.split("_").pop());
+  }
+
+  const sClassPalette=["#1d4ed8","#059669","#7c3aed","#ef4444","#f59e0b","#06b6d4","#db2777","#84cc16","#0f766e","#f97316","#64748b","#be185d"];
+
+  function sRenderClassChart(){
+    const canvas=$s("sClassChart");
+    const emptyEl=$s("sClassChartEmpty");
+    if(!canvas)return;
+    const data=sRankShowAll?sAllGroupsData:sAllGroupsData.filter(g=>sIsMyGroup(g.groupName));
+    if(!data.length){canvas.style.display="none";if(emptyEl)emptyEl.style.display="block";return;}
+    canvas.style.display="block";if(emptyEl)emptyEl.style.display="none";
+    const dpr=window.devicePixelRatio||1;
+    const W=canvas.clientWidth||340,H=canvas.clientHeight||180;
+    canvas.width=Math.floor(W*dpr);canvas.height=Math.floor(H*dpr);
+    const ctx=canvas.getContext("2d");
+    ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+    const allRounds=new Set();
+    data.forEach(g=>g.rows.forEach(r=>allRounds.add(Number(r[0]||0))));
+    const rounds=[0,...Array.from(allRounds)].sort((a,b)=>a-b);
+    const xMax=rounds[rounds.length-1]||1;
+    const series=data.map((g,i)=>{
+      const pts=[{r:0,ret:0}];
+      for(const r of g.rows){const after=Number(r[9]||g.initCash);const ret=g.initCash>0?(after-g.initCash)/g.initCash*100:0;pts.push({r:Number(r[0]||0),ret});}
+      return{groupName:g.groupName,pts,color:sClassPalette[i%sClassPalette.length],isMe:sIsMyGroup(g.groupName)};
+    });
+    const allRets=series.flatMap(s=>s.pts.map(p=>p.ret));
+    const rMin=Math.min(0,...allRets),rMax=Math.max(0,...allRets);
+    const rRange=Math.max(Math.abs(rMin),Math.abs(rMax))||1;
+    const yMin=-rRange*1.2,yMax=rRange*1.2;
+    const PAD={l:42,r:10,t:14,b:24};
+    const plotW=W-PAD.l-PAD.r,plotH=H-PAD.t-PAD.b;
+    const xS=x=>x/xMax*plotW+PAD.l;
+    const yS=y=>PAD.t+plotH-(y-yMin)/(yMax-yMin||1)*plotH;
+    ctx.fillStyle="rgba(248,250,255,0.9)";ctx.fillRect(PAD.l,PAD.t,plotW,plotH);
+    ctx.strokeStyle="rgba(15,20,26,0.15)";ctx.lineWidth=1;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(PAD.l,yS(0));ctx.lineTo(PAD.l+plotW,yS(0));ctx.stroke();ctx.setLineDash([]);
+    ctx.font="9px 'JetBrains Mono',monospace";ctx.textAlign="right";ctx.fillStyle="rgba(15,20,26,0.45)";
+    for(let v=-rRange;v<=rRange+0.01;v+=rRange){ctx.fillText((v>=0?"+":"")+v.toFixed(0)+"%",PAD.l-3,yS(v)+3);}
+    ctx.textAlign="center";
+    for(const r of rounds.filter(r=>r>0)){ctx.fillStyle="rgba(15,20,26,0.45)";ctx.fillText("R"+r,xS(r),PAD.t+plotH+15);}
+    const sorted=[...series].sort((a,b)=>(a.isMe?1:-1)-(b.isMe?1:-1));
+    for(const s of sorted){
+      if(s.pts.length<2)continue;
+      const r=parseInt(s.color.slice(1,3),16),g=parseInt(s.color.slice(3,5),16),b=parseInt(s.color.slice(5,7),16);
+      ctx.strokeStyle=s.isMe?s.color:`rgba(${r},${g},${b},0.3)`;
+      ctx.lineWidth=s.isMe?2.5:1.2;ctx.setLineDash(s.isMe?[]:[4,3]);
+      ctx.beginPath();s.pts.forEach((p,i)=>{i===0?ctx.moveTo(xS(p.r),yS(p.ret)):ctx.lineTo(xS(p.r),yS(p.ret));});
+      ctx.stroke();ctx.setLineDash([]);
+      if(s.isMe&&s.pts.length){const last=s.pts[s.pts.length-1];ctx.beginPath();ctx.arc(xS(last.r),yS(last.ret),4,0,Math.PI*2);ctx.fillStyle=s.color;ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=1.5;ctx.stroke();}
+    }
+  }
+
+  function sRenderRankTable(){
+    const tbody=$s("sRankBody");if(!tbody)return;
+    const data=sRankShowAll?sAllGroupsData:sAllGroupsData.filter(g=>sIsMyGroup(g.groupName));
+    if(!data.length){tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;color:#64748b;padding:16px;">No class ranking data yet</td></tr>`;return;}
+    tbody.innerHTML=data.map((g)=>{
+      const rankNum=sAllGroupsData.indexOf(g)+1;
+      const isMe=sIsMyGroup(g.groupName);
+      const badgeCls=rankNum<=3?`rank${rankNum}`:"";
+      const retCls=g.totalReturn>=0?"ok":"bad";
+      const retStr=(g.totalReturn>=0?"+":"")+(g.totalReturn*100).toFixed(2)+"%";
+      return`<tr class="${isMe?"sMyRow":""}">
+        <td><span class="sRankBadge ${badgeCls}">${rankNum}</span></td>
+        <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;font-size:11px;">${isMe?"🔵 ":""}${g.groupName.split("_").pop()||g.groupName}</td>
+        <td class="mono" style="font-size:11px;">${g.finalCash.toLocaleString("en-US")}</td>
+        <td class="mono ${retCls}" style="font-size:11px;font-weight:${isMe?"700":"400"};">${retStr}</td>
+        <td class="mono" style="font-size:11px;">${g.roundCount}</td>
+      </tr>`;
+    }).join("");
+  }
 
   // Init
   window.sRefreshDropdowns();
