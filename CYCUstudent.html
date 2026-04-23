@@ -1157,10 +1157,17 @@ function hideStudentPortal(){}
   const _appArea = document.getElementById("sAppArea");
   if(_appArea) _appAreaObs.observe(_appArea, {attributes:true});
 
-  // Init
-  window.sRefreshDropdowns();
-  sUpdateSliders();
-  if($s("sLevVal"))$s("sLevVal").textContent=(parseInt($s("sLevRange")?.value||10)/10).toFixed(1)+"×";
+  // Init — 確保 DOM 完全就緒後才填入下拉選單（GitHub Pages 部署相容）
+  function doInit(){
+    window.sRefreshDropdowns();
+    sUpdateSliders();
+    if($s("sLevVal"))$s("sLevVal").textContent=(parseInt($s("sLevRange")?.value||10)/10).toFixed(1)+"×";
+  }
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded", doInit);
+  } else {
+    doInit();
+  }
 })();
 </script>
 </body>
