@@ -128,8 +128,8 @@
     .sSpecialCard.cat{background:linear-gradient(135deg,#4c1d95,#7c3aed);border:2px solid rgba(167,139,250,0.6);}
     .sSpecialCard.gambling{background:linear-gradient(135deg,#7f1d1d,#dc2626);border:2px solid rgba(252,165,165,0.5);}
     @keyframes sCardPop{from{transform:scale(0.4) translateY(60px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
-    .sCatVideoWrap{width:min(240px,80vw);margin:0 auto 12px;border-radius:16px;background:#000;position:relative;}
-    .sCatVideoWrap video{width:100%;display:block;border-radius:16px;}
+    .sCatVideoWrap{width:min(240px,80vw);margin:0 auto 12px;border-radius:16px;overflow:hidden;background:#000;}
+    .sCatVideoWrap video{width:100%;display:block;}
     .sSpecialTitle{font-size:20px;font-weight:900;margin-bottom:8px;}
     .sSpecialBody{font-size:13px;color:rgba(255,255,255,0.85);line-height:1.7;margin-bottom:14px;}
     .sSpecialClose{padding:10px 24px;border-radius:11px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.15);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;}
@@ -220,14 +220,6 @@
           </div>
         </div>
 
-        <div class="sLockBar" id="sLevLockBar" style="background:#fefce8;border-color:#fcd34d;display:none;">
-          <div style="font-size:24px;flex-shrink:0;">⚡🔒</div>
-          <div>
-            <div style="font-size:13px;font-weight:700;color:#92400e;">槓桿關閉模式 — 本場次槓桿固定為 1.0×</div>
-            <div style="font-size:11.5px;color:#78350f;margin-top:2px;">教師已啟用槓桿關閉模式，所有槓桿選項已停用。</div>
-          </div>
-        </div>
-
         <div class="sAppCard">
           <div class="sAppTitle">📊 我的投資績效</div>
           <div class="sPGrid">
@@ -271,19 +263,12 @@
             <span class="sSumVal2 ok" id="sSumVal2">100%</span>
           </div>
           <div style="height:1px;background:#e2e8f0;margin:14px 0;"></div>
-
-          <!-- 槓桿設定區 -->
-          <div style="margin-bottom:8px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-size:12px;font-weight:700;color:#0f172a;">⚡ 槓桿設定</span>
-            </div>
-            <div class="sLevRow2">
-              <span class="sLevLabel2">統一槓桿</span>
-              <input type="range" class="sRange2 lv" id="sLevRange" min="-15" max="15" step="1" value="10" style="flex:1;"/>
-              <span class="sLevVal2" id="sLevVal">1.0×</span>
-            </div>
-            <div style="font-size:11px;color:#64748b;margin-top:4px;text-align:right;">-1.5×（反向）｜ 1.0×（標準）｜ 1.5×（最大）</div>
+          <div class="sLevRow2">
+            <span class="sLevLabel2">⚡ 槓桿</span>
+            <input type="range" class="sRange2 lv" id="sLevRange" min="-9" max="15" step="1" value="10" style="flex:1;"/>
+            <span class="sLevVal2" id="sLevVal">1.0×</span>
           </div>
+          <div style="font-size:11px;color:#64748b;margin-top:4px;text-align:right;">-0.9×（反向）｜ 1.0×（標準）｜ 1.5×（最大）</div>
           <div style="height:1px;background:#e2e8f0;margin:14px 0;"></div>
           <label style="display:block;font-size:12px;font-weight:600;color:#64748b;margin-bottom:7px;">💬 策略說明（選填）</label>
           <textarea class="sTextarea2" id="sStrategy" placeholder="說明您這回合的投資邏輯…"></textarea>
@@ -362,9 +347,9 @@ function hideStudentPortal(){}
   let sSession={groupKey:"",groupName:"",semClass:"",pwdHash:"",roundLocked:false};
 
   const DEF_CLASSES=["1142甲班","1142乙班","1151甲班","1151乙班","1141甲班","1141乙班"];
-  function sLoadClasses(){const s=localStorage.getItem("s_classes");return s?JSON.parse(s):[...DEF_CLASSES];}
+  function sLoadClasses(){try{const s=localStorage.getItem("s_classes");return s?JSON.parse(s):[...DEF_CLASSES];}catch(e){return[...DEF_CLASSES];}}
   function sSaveClasses(a){localStorage.setItem("s_classes",JSON.stringify(a));}
-  function sLoadGroups(){const s=localStorage.getItem("s_groups");return s?JSON.parse(s):Array.from({length:20},(_,i)=>`第${i+1}組`);}
+  function sLoadGroups(){try{const s=localStorage.getItem("s_groups");return s?JSON.parse(s):Array.from({length:20},(_,i)=>`第${i+1}組`);}catch(e){return Array.from({length:20},(_,i)=>`第${i+1}組`);}}
   function sSaveGroups(a){localStorage.setItem("s_groups",JSON.stringify(a));}
 
   function sPop(id,items,placeholder){
@@ -487,9 +472,9 @@ function hideStudentPortal(){}
     if(data.leverage!=null)$s("sLevRange").value=Math.round(Number(data.leverage)*10);
     if(data.strategy)$s("sStrategy").value=data.strategy;
     sUpdateSliders();sSetLocked(!!sSession.roundLocked);
-    sSession.savedThisRound = false;
+    sSession.savedThisRound = false; // 重置儲存標記
     if($s("sBtnSave"))$s("sBtnSave").textContent="💾 儲存本回合決策";
-    // 先顯示 -- 等 sLoadHistory 從 GS 取回真實回合數
+    // Sync round from teacher state if available
     if($s("sRoundNum"))$s("sRoundNum").textContent="--";
     sLoadHistory();
     sToast("✅ 歡迎，"+sSession.groupName+"！");
@@ -520,20 +505,9 @@ function hideStudentPortal(){}
     if($s("sSumLabel2")){$s("sSumLabel2").textContent=ok?"✅ 配置合計 = 100%":"⚠️ 合計 ≠ 100%，請調整";$s("sSumLabel2").className="sSumLabel2 "+(ok?"ok":"warn");}
     if($s("sSumBar2"))$s("sSumBar2").className="sSumBar2 "+(ok?"ok":"warn");
     if($s("sBtnSave"))$s("sBtnSave").disabled=(!ok||sSession.roundLocked);
-    // also disable/enable lever ranges
-    const locked=sSession.roundLocked;
-    ["sLevRange","sStockLevRange","sBondLevRange","sCryptoLevRange"].forEach(id=>{if($s(id))$s(id).disabled=locked;});
   }
   ["sStockRange","sBondRange","sCryptoRange"].forEach(id=>$s(id)?.addEventListener("input",sUpdateSliders));
   $s("sLevRange")?.addEventListener("input",()=>{const v=parseInt($s("sLevRange").value)/10;if($s("sLevVal"))$s("sLevVal").textContent=v.toFixed(1)+"×";});
-  // Per-asset leverage sliders
-  ["sStockLevRange","sBondLevRange","sCryptoLevRange"].forEach(id=>{
-    $s(id)?.addEventListener("input",()=>{
-      const valId=id.replace("Range","Val");
-      const v=parseInt($s(id).value)/10;
-      if($s(valId))$s(valId).textContent=v.toFixed(1)+"×";
-    });
-  });
 
   function sSetLocked(locked){
     const wasLocked = sSession.roundLocked;
@@ -549,24 +523,13 @@ function hideStudentPortal(){}
 
   function sSetLevLocked(locked){
     sSession.levLocked = locked;
-    const bar = $s("sLevLockBar");
-    if(bar) bar.style.display = locked ? "flex" : "none";
-    // Disable/enable ALL lever sliders and the per-asset toggle
-    const ids=["sLevRange","sStockLevRange","sBondLevRange","sCryptoLevRange"];
-    ids.forEach(id=>{
-      const el=$s(id); if(!el)return;
-      el.disabled=locked;
-      el.style.opacity=locked?"0.35":"1";
-      el.style.cursor=locked?"not-allowed":"";
-    });
-    // Force all lever displays to 1.0× when locked
+    const bar=$s("sLevLockBar");
+    if(bar) bar.style.display=locked?"flex":"none";
     if(locked){
-      ["sLevRange","sStockLevRange","sBondLevRange","sCryptoLevRange"].forEach(id=>{
-        const el=$s(id); if(el){ el.value=10; }
-      });
-      ["sLevVal","sStockLevVal","sBondLevVal","sCryptoLevVal"].forEach(id=>{
-        const el=$s(id); if(el) el.textContent="1.0×";
-      });
+      const levEl=$s("sLevRange"); if(levEl){levEl.disabled=true;levEl.value=10;}
+      const levVal=$s("sLevVal"); if(levVal)levVal.textContent="1.0×";
+    } else {
+      const levEl=$s("sLevRange"); if(levEl)levEl.disabled=false;
     }
   }
 
@@ -580,12 +543,10 @@ function hideStudentPortal(){}
         // Update round from server
         const serverRound = res.currentRound ?? null;
         const serverLocked = res.roundLocked ?? sSession.roundLocked;
-        const serverLevLocked2 = res.leverageLocked ?? false;
         if(serverRound !== null){
           sUpdateRound(serverRound, serverLocked);
           sSetLocked(serverLocked);
         }
-        sSetLevLocked(serverLevLocked2);
         // Find latest decision for this group (02decision: B=學期班級, C=組別)
         const gKeyParts2 = sSession.groupKey.split("_");
         const gGroupName2 = gKeyParts2[gKeyParts2.length-1]; // "第2組"
@@ -617,16 +578,8 @@ function hideStudentPortal(){}
         const gSemClass3 = gKeyParts3.slice(0,-1).join("_");
         const myRounds3 = roundHistory2.filter(r=>{
           const rGroup=String(r[5]||"").trim();
-          return rGroup===fullName3 || rGroup===gGroupName3 ||
-                 rGroup===(gSemClass3+"_"+gGroupName3) ||
-                 rGroup.endsWith("_"+gGroupName3) ||
-                 rGroup.includes(gGroupName3);
+          return rGroup===fullName3||rGroup===gGroupName3||rGroup===(gSemClass3+"_"+gGroupName3);
         });
-        // 更新最大回合（斷線重連）
-        if(roundHistory2.length > 0){
-          const maxRound2 = Math.max(...roundHistory2.map(r=>Number(r[0]||0)));
-          if(maxRound2 > 0) sUpdateRound(maxRound2, sSession.roundLocked);
-        }
         if(myRounds3.length){
           sRenderRoundHistory(myRounds3);
           sRenderSummaryFromRounds(myRounds3);
@@ -646,13 +599,11 @@ function hideStudentPortal(){}
 
   $s("sBtnSave")?.addEventListener("click",async()=>{
     if(sSession.roundLocked){sToast("⚠️ 回合鎖定中");return;}
-    if(sSession.levLocked){sToast("⚠️ 槓桿關閉模式：教師已鎖定槓桿，無法修改");return;}
     const sk=parseInt($s("sStockRange")?.value)||0;
     const bd=parseInt($s("sBondRange")?.value)||0;
     const cr=parseInt($s("sCryptoRange")?.value)||0;
     if(sk+bd+cr!==100){sToast("⚠️ 三種資產合計必須 = 100%！");return;}
-    const lev = sSession.levLocked ? 1.0 : parseInt($s("sLevRange").value)/10;
-
+    const lev=parseInt($s("sLevRange").value)/10;
     const strategy=$s("sStrategy")?.value?.trim()||"";
 
     // 若本回合已儲存過，彈出確認對話框
@@ -679,8 +630,7 @@ function hideStudentPortal(){}
           semClass:   gSemClass,                     // B欄：學期班級（如 1141甲班）
           groupName:  gGroupName,                    // C欄：組別（如 第1組）
           stockWeight: sk, bondWeight: bd, cryptoWeight: cr,
-          leverage: isFinite(lev) ? lev : 1.0,
-          stockLeverage: "", bondLeverage: "", cryptoLeverage: "",
+          leverage: lev,
           strategyNote: strategy + (sSession.customName ? ` [${sSession.customName}]` : ""),
           teacherNote: sSession.customName || ""      // I欄：自訂組名備註
         }]
@@ -714,10 +664,10 @@ function hideStudentPortal(){}
         // 更新回合與鎖定狀態
         const serverRound = res.currentRound ?? null;
         const serverLocked = res.roundLocked ?? sSession.roundLocked;
-        const serverLevLocked = res.leverageLocked ?? false;
-        sSetLocked(serverLocked);
-        sSetLevLocked(serverLevLocked);
+        if(serverRound !== null){ sUpdateRound(serverRound, serverLocked); sSetLocked(serverLocked); }
 
+        // 從 roundHistory（01reborn/回合紀錄）讀取此組別的回合績效
+        // 欄位：A=回合 B=抽序 C=不放回 D=日期 E=事件名 F=組別 G=槓桿 H=報酬% I=前資產 J=後資產 K=損益
         const roundHistory = res.roundHistory||[];
         const gKeyParts = sSession.groupKey.split("_");
         const gGroupName = gKeyParts[gKeyParts.length-1];
@@ -726,30 +676,23 @@ function hideStudentPortal(){}
 
         const myRounds = roundHistory.filter(r=>{
           const rGroup = String(r[5]||"").trim();
-          return rGroup === fullName ||
-                 rGroup === gGroupName ||
+          return rGroup === fullName || rGroup === gGroupName ||
                  rGroup === (gSemClass+"_"+gGroupName) ||
-                 rGroup.endsWith("_"+gGroupName) ||
-                 rGroup.includes(gGroupName);
+                 rGroup.endsWith("_"+gGroupName) || rGroup.includes(gGroupName);
         });
 
-        // 回合數：優先用 GS currentRound，其次用此組最大回合，最後用全域最大回合
+        // 回合數：優先 GS currentRound，其次 roundHistory 最大值
         let displayRound = serverRound;
-        if(!displayRound && myRounds.length > 0)
-          displayRound = Math.max(...myRounds.map(r=>Number(r[0]||0)));
-        if(!displayRound && roundHistory.length > 0)
-          displayRound = Math.max(...roundHistory.map(r=>Number(r[0]||0)));
-        if(displayRound > 0) sUpdateRound(displayRound, serverLocked);
-
-        // 若該組已有此回合資料，標記為已儲存
-        if(myRounds.length > 0 && displayRound > 0){
-          const myMaxRound = Math.max(...myRounds.map(r=>Number(r[0]||0)));
-          if(myMaxRound >= displayRound){
-            sSession.savedThisRound = true;
-            if($s("sBtnSave")) $s("sBtnSave").textContent="💾 更新本回合決策（已儲存過）";
-          }
+        if(!displayRound && roundHistory.length>0){
+          const nums=roundHistory.map(r=>Number(r[0]||0)).filter(n=>Number.isFinite(n)&&n>0);
+          if(nums.length) displayRound=Math.max(...nums);
         }
-
+        if(displayRound>0) sUpdateRound(displayRound, serverLocked);
+        if(myRounds.length>0 && displayRound>0){
+          const myMax=Math.max(...myRounds.map(r=>Number(r[0]||0)).filter(n=>n>0));
+          if(myMax>=displayRound){ sSession.savedThisRound=true;
+            if($s("sBtnSave"))$s("sBtnSave").textContent="💾 更新本回合決策（已儲存過）"; }
+        }
         if(myRounds.length){
           sRenderRoundHistory(myRounds);
           sRenderSummaryFromRounds(myRounds);
@@ -1099,10 +1042,7 @@ function hideStudentPortal(){}
     const isCat = type === "cat_bonus";
     card.className = "sSpecialCard " + (isCat ? "cat" : "gambling");
     card.innerHTML = isCat
-      ? `<div class="sCatVideoWrap" style="position:relative;">
-           <video id="sCatVideo_${Date.now()}" src="${CAT_VIDEO_URL}" autoplay muted playsinline loop controlsList="nodownload nofullscreen noremoteplayback" oncontextmenu="return false" style="width:100%;border-radius:12px;pointer-events:none;user-select:none;"></video>
-           <button onclick="(function(btn){var v=btn.closest('.sCatVideoWrap').querySelector('video');v.muted=!v.muted;btn.textContent=v.muted?'🔇 點擊開聲音':'🔊 聲音已開啟';})(this)" style="position:absolute;bottom:8px;right:8px;padding:4px 10px;border-radius:8px;border:none;background:rgba(0,0,0,0.55);color:#fff;font-size:11px;cursor:pointer;font-family:inherit;pointer-events:auto;">🔇 點擊開聲音</button>
-         </div>
+      ? `<div class="sCatVideoWrap" style="position:relative;"><video src="${CAT_VIDEO_URL}" autoplay muted playsinline loop controlsList="nodownload nofullscreen noremoteplayback" oncontextmenu="return false" style="width:100%;border-radius:12px;pointer-events:none;user-select:none;" style="width:100%;border-radius:12px;"></video></div>
          <div class="sSpecialTitle">${title}</div>
          <div class="sSpecialBody">${body}</div>
          <button class="sSpecialClose" onclick="this.closest('.sSpecialCard').remove()">🐾 收下好運！</button>`
@@ -1157,17 +1097,14 @@ function hideStudentPortal(){}
   const _appArea = document.getElementById("sAppArea");
   if(_appArea) _appAreaObs.observe(_appArea, {attributes:true});
 
-  // Init — 確保 DOM 完全就緒後才填入下拉選單（GitHub Pages 部署相容）
+  // Init
   function doInit(){
-    window.sRefreshDropdowns();
-    sUpdateSliders();
-    if($s("sLevVal"))$s("sLevVal").textContent=(parseInt($s("sLevRange")?.value||10)/10).toFixed(1)+"×";
+    try{ window.sRefreshDropdowns(); }catch(e){ console.error("sRefreshDropdowns error:",e); }
+    try{ sUpdateSliders(); }catch(e){}
+    try{ if($s("sLevVal"))$s("sLevVal").textContent=(parseInt($s("sLevRange")?.value||10)/10).toFixed(1)+"×"; }catch(e){}
   }
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded", doInit);
-  } else {
-    doInit();
-  }
+  if(document.readyState==="loading"){ document.addEventListener("DOMContentLoaded",doInit); }
+  else { doInit(); }
 })();
 </script>
 </body>
