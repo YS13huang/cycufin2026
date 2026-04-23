@@ -128,8 +128,8 @@
     .sSpecialCard.cat{background:linear-gradient(135deg,#4c1d95,#7c3aed);border:2px solid rgba(167,139,250,0.6);}
     .sSpecialCard.gambling{background:linear-gradient(135deg,#7f1d1d,#dc2626);border:2px solid rgba(252,165,165,0.5);}
     @keyframes sCardPop{from{transform:scale(0.4) translateY(60px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
-    .sCatVideoWrap{width:min(240px,80vw);margin:0 auto 12px;border-radius:16px;overflow:hidden;background:#000;}
-    .sCatVideoWrap video{width:100%;display:block;}
+    .sCatVideoWrap{width:min(240px,80vw);margin:0 auto 12px;border-radius:16px;background:#000;position:relative;}
+    .sCatVideoWrap video{width:100%;display:block;border-radius:16px;}
     .sSpecialTitle{font-size:20px;font-weight:900;margin-bottom:8px;}
     .sSpecialBody{font-size:13px;color:rgba(255,255,255,0.85);line-height:1.7;margin-bottom:14px;}
     .sSpecialClose{padding:10px 24px;border-radius:11px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.15);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;}
@@ -650,8 +650,16 @@ function hideStudentPortal(){}
         const gSemClass3 = gKeyParts3.slice(0,-1).join("_");
         const myRounds3 = roundHistory2.filter(r=>{
           const rGroup=String(r[5]||"").trim();
-          return rGroup===fullName3||rGroup===gGroupName3||rGroup===(gSemClass3+"_"+gGroupName3);
+          return rGroup===fullName3 || rGroup===gGroupName3 ||
+                 rGroup===(gSemClass3+"_"+gGroupName3) ||
+                 rGroup.endsWith("_"+gGroupName3) ||
+                 rGroup.includes(gGroupName3);
         });
+        // 更新最大回合（斷線重連）
+        if(roundHistory2.length > 0){
+          const maxRound2 = Math.max(...roundHistory2.map(r=>Number(r[0]||0)));
+          if(maxRound2 > 0) sUpdateRound(maxRound2, sSession.roundLocked);
+        }
         if(myRounds3.length){
           sRenderRoundHistory(myRounds3);
           sRenderSummaryFromRounds(myRounds3);
@@ -678,9 +686,9 @@ function hideStudentPortal(){}
     if(sk+bd+cr!==100){sToast("⚠️ 三種資產合計必須 = 100%！");return;}
     const lev = sSession.levLocked ? 1.0 : parseInt($s("sLevRange").value)/10;
     const usePerAsset = sSession.levLocked ? false : ($s("chkPerAssetLev")?.checked||false);
-    const stockLev  = (sSession.levLocked||!usePerAsset) ? lev : (parseInt($s("sStockLevRange")?.value||10)/10);
-    const bondLev   = (sSession.levLocked||!usePerAsset) ? lev : (parseInt($s("sBondLevRange")?.value||10)/10);
-    const cryptoLev = (sSession.levLocked||!usePerAsset) ? lev : (parseInt($s("sCryptoLevRange")?.value||10)/10);
+    const stockLev  = (sSession.levLocked||!usePerAsset) ? lev : (parseInt($s("sStockLevRange")?.value??10)/10);
+    const bondLev   = (sSession.levLocked||!usePerAsset) ? lev : (parseInt($s("sBondLevRange")?.value??10)/10);
+    const cryptoLev = (sSession.levLocked||!usePerAsset) ? lev : (parseInt($s("sCryptoLevRange")?.value??10)/10);
     const strategy=$s("sStrategy")?.value?.trim()||"";
 
     // 若本回合已儲存過，彈出確認對話框
@@ -707,8 +715,10 @@ function hideStudentPortal(){}
           semClass:   gSemClass,                     // B欄：學期班級（如 1141甲班）
           groupName:  gGroupName,                    // C欄：組別（如 第1組）
           stockWeight: sk, bondWeight: bd, cryptoWeight: cr,
-          leverage: lev,
-          stockLeverage: stockLev, bondLeverage: bondLev, cryptoLeverage: cryptoLev,
+          leverage: isFinite(lev) ? lev : 1.0,
+          stockLeverage:  isFinite(stockLev)  ? stockLev  : lev,
+          bondLeverage:   isFinite(bondLev)   ? bondLev   : lev,
+          cryptoLeverage: isFinite(cryptoLev) ? cryptoLev : lev,
           usePerAssetLeverage: usePerAsset,
           strategyNote: strategy + (sSession.customName ? ` [${sSession.customName}]` : ""),
           teacherNote: sSession.customName || ""      // I欄：自訂組名備註
@@ -751,22 +761,32 @@ function hideStudentPortal(){}
         // 欄位：A=回合 B=抽序 C=不放回 D=日期 E=事件名 F=組別 G=槓桿 H=報酬% I=前資產 J=後資產 K=損益
         const roundHistory = res.roundHistory||[];
         const gKeyParts = sSession.groupKey.split("_");
-        const gGroupName = gKeyParts[gKeyParts.length-1]; // "第2組"
-        const gSemClass  = gKeyParts.slice(0,-1).join("_"); // "1141甲班"
-        const fullName   = sSession.groupKey; // "1141甲班_第2組"
+        const gGroupName = gKeyParts[gKeyParts.length-1]; // "英國短毛貓"
+        const gSemClass  = gKeyParts.slice(0,-1).join("_"); // "喵喵班"
+        const fullName   = sSession.groupKey; // "喵喵班_英國短毛貓"
 
-        // 比對策略：F欄 (index 5) = 組別名稱（格式：「學期班級_組別」）
+        // 比對策略：F欄 (index 5) 包含組別名稱，支援多種格式
         const myRounds = roundHistory.filter(r=>{
           const rGroup = String(r[5]||"").trim();
-          return rGroup === fullName ||           // "1141甲班_第3組"
-                 rGroup === gGroupName ||         // "第3組"
-                 rGroup === (gSemClass+"_"+gGroupName); // 組合比對
+          return rGroup === fullName ||
+                 rGroup === gGroupName ||
+                 rGroup === (gSemClass+"_"+gGroupName) ||
+                 rGroup.endsWith("_"+gGroupName) ||
+                 rGroup.includes(gGroupName);
         });
 
-        // 從 roundHistory 計算最大回合數（不依賴 overall 分頁）
+        // 從 roundHistory 取最大回合數，確保斷線重連後顯示正確回合
         if(roundHistory.length > 0){
           const maxRound = Math.max(...roundHistory.map(r=>Number(r[0]||0)));
           if(maxRound > 0) sUpdateRound(maxRound, sSession.roundLocked);
+          // 若該組已有此回合資料，標記為已儲存（避免重複儲存提示）
+          if(myRounds.length > 0){
+            const myMaxRound = Math.max(...myRounds.map(r=>Number(r[0]||0)));
+            if(myMaxRound >= maxRound && maxRound > 0){
+              sSession.savedThisRound = true;
+              if($s("sBtnSave")) $s("sBtnSave").textContent="💾 更新本回合決策（已儲存過）";
+            }
+          }
         }
 
         if(myRounds.length){
