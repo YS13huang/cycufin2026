@@ -277,15 +277,12 @@
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
               <span style="font-size:12px;font-weight:700;color:#0f172a;">⚡ 槓桿設定</span>
             </div>
-
-            <!-- 一次性槓桿（預設） -->
-              <div class="sLevRow2">
-                <span class="sLevLabel2">統一槓桿</span>
-                <input type="range" class="sRange2 lv" id="sLevRange" min="-15" max="15" step="1" value="10" style="flex:1;"/>
-                <span class="sLevVal2" id="sLevVal">1.0×</span>
-              </div>
-              <div style="font-size:11px;color:#64748b;margin-top:4px;text-align:right;">-1.5×（反向）｜ 1.0×（標準）｜ 1.5×（最大）</div>
+            <div class="sLevRow2">
+              <span class="sLevLabel2">統一槓桿</span>
+              <input type="range" class="sRange2 lv" id="sLevRange" min="-15" max="15" step="1" value="10" style="flex:1;"/>
+              <span class="sLevVal2" id="sLevVal">1.0×</span>
             </div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;text-align:right;">-1.5×（反向）｜ 1.0×（標準）｜ 1.5×（最大）</div>
           </div>
           <div style="height:1px;background:#e2e8f0;margin:14px 0;"></div>
           <label style="display:block;font-size:12px;font-weight:600;color:#64748b;margin-bottom:7px;">💬 策略說明（選填）</label>
@@ -490,10 +487,10 @@ function hideStudentPortal(){}
     if(data.leverage!=null)$s("sLevRange").value=Math.round(Number(data.leverage)*10);
     if(data.strategy)$s("sStrategy").value=data.strategy;
     sUpdateSliders();sSetLocked(!!sSession.roundLocked);
-    sSession.savedThisRound = false; // 重置儲存標記
+    sSession.savedThisRound = false;
     if($s("sBtnSave"))$s("sBtnSave").textContent="💾 儲存本回合決策";
-    // Sync round from teacher state if available
-    try{const r=typeof state!=="undefined"?state.round:0;sUpdateRound(r,sSession.roundLocked);}catch(e){}
+    // 先顯示 -- 等 sLoadHistory 從 GS 取回真實回合數
+    if($s("sRoundNum"))$s("sRoundNum").textContent="--";
     sLoadHistory();
     sToast("✅ 歡迎，"+sSession.groupName+"！");
   }
@@ -723,18 +720,15 @@ function hideStudentPortal(){}
         const serverRound = res.currentRound ?? null;
         const serverLocked = res.roundLocked ?? sSession.roundLocked;
         const serverLevLocked = res.leverageLocked ?? false;
-        if(serverRound !== null){ sUpdateRound(serverRound, serverLocked); sSetLocked(serverLocked); }
+        sSetLocked(serverLocked);
         sSetLevLocked(serverLevLocked);
 
-        // 從 roundHistory（01reborn/回合紀錄）讀取此組別的回合績效
-        // 欄位：A=回合 B=抽序 C=不放回 D=日期 E=事件名 F=組別 G=槓桿 H=報酬% I=前資產 J=後資產 K=損益
         const roundHistory = res.roundHistory||[];
         const gKeyParts = sSession.groupKey.split("_");
-        const gGroupName = gKeyParts[gKeyParts.length-1]; // "英國短毛貓"
-        const gSemClass  = gKeyParts.slice(0,-1).join("_"); // "喵喵班"
-        const fullName   = sSession.groupKey; // "喵喵班_英國短毛貓"
+        const gGroupName = gKeyParts[gKeyParts.length-1];
+        const gSemClass  = gKeyParts.slice(0,-1).join("_");
+        const fullName   = sSession.groupKey;
 
-        // 比對策略：F欄 (index 5) 包含組別名稱，支援多種格式
         const myRounds = roundHistory.filter(r=>{
           const rGroup = String(r[5]||"").trim();
           return rGroup === fullName ||
@@ -744,17 +738,20 @@ function hideStudentPortal(){}
                  rGroup.includes(gGroupName);
         });
 
-        // 從 roundHistory 取最大回合數，確保斷線重連後顯示正確回合
-        if(roundHistory.length > 0){
-          const maxRound = Math.max(...roundHistory.map(r=>Number(r[0]||0)));
-          if(maxRound > 0) sUpdateRound(maxRound, sSession.roundLocked);
-          // 若該組已有此回合資料，標記為已儲存（避免重複儲存提示）
-          if(myRounds.length > 0){
-            const myMaxRound = Math.max(...myRounds.map(r=>Number(r[0]||0)));
-            if(myMaxRound >= maxRound && maxRound > 0){
-              sSession.savedThisRound = true;
-              if($s("sBtnSave")) $s("sBtnSave").textContent="💾 更新本回合決策（已儲存過）";
-            }
+        // 回合數：優先用 GS currentRound，其次用此組最大回合，最後用全域最大回合
+        let displayRound = serverRound;
+        if(!displayRound && myRounds.length > 0)
+          displayRound = Math.max(...myRounds.map(r=>Number(r[0]||0)));
+        if(!displayRound && roundHistory.length > 0)
+          displayRound = Math.max(...roundHistory.map(r=>Number(r[0]||0)));
+        if(displayRound > 0) sUpdateRound(displayRound, serverLocked);
+
+        // 若該組已有此回合資料，標記為已儲存
+        if(myRounds.length > 0 && displayRound > 0){
+          const myMaxRound = Math.max(...myRounds.map(r=>Number(r[0]||0)));
+          if(myMaxRound >= displayRound){
+            sSession.savedThisRound = true;
+            if($s("sBtnSave")) $s("sBtnSave").textContent="💾 更新本回合決策（已儲存過）";
           }
         }
 
