@@ -276,10 +276,7 @@
           <div style="margin-bottom:8px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
               <span style="font-size:12px;font-weight:700;color:#0f172a;">⚡ 槓桿設定</span>
-              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11.5px;color:#64748b;">
-                <input type="checkbox" id="chkPerAssetLev" style="cursor:pointer;"/>
-                <span>三商品獨立槓桿</span>
-              </label>
+              <span id="sMultiLevBadge" style="display:none;font-size:11px;color:#0284c7;font-weight:700;background:rgba(14,165,233,0.10);border:1px solid rgba(14,165,233,0.3);border-radius:6px;padding:2px 8px;">🔀 多商品槓桿模式</span>
             </div>
 
             <!-- 一次性槓桿（預設） -->
@@ -562,11 +559,7 @@ function hideStudentPortal(){}
       if($s(valId))$s(valId).textContent=v.toFixed(1)+"×";
     });
   });
-  $s("chkPerAssetLev")?.addEventListener("change",()=>{
-    const on=$s("chkPerAssetLev").checked;
-    if($s("singleLevArea"))$s("singleLevArea").style.display=on?"none":"block";
-    if($s("perAssetLevArea"))$s("perAssetLevArea").style.display=on?"block":"none";
-  });
+  // chkPerAssetLev は教師のmultiLevモードで制御される（学生は操作不可）
 
   function sSetLocked(locked){
     const wasLocked = sSession.roundLocked;
@@ -585,7 +578,7 @@ function hideStudentPortal(){}
     const bar = $s("sLevLockBar");
     if(bar) bar.style.display = locked ? "flex" : "none";
     // Disable/enable ALL lever sliders and the per-asset toggle
-    const ids=["sLevRange","sStockLevRange","sBondLevRange","sCryptoLevRange","chkPerAssetLev"];
+    const ids=["sLevRange","sStockLevRange","sBondLevRange","sCryptoLevRange"];
     ids.forEach(id=>{
       const el=$s(id); if(!el)return;
       el.disabled=locked;
@@ -605,26 +598,25 @@ function hideStudentPortal(){}
 
   function sSetMultiLevMode(enabled){
     sSession.multiLevMode = enabled;
-    if(enabled && !sSession.levLocked){
-      // 自動勾選三商品獨立槓桿
-      const chk=$s("chkPerAssetLev");
-      if(chk && !chk.checked){ chk.checked=true; chk.dispatchEvent(new Event("change")); }
-      // 隱藏統一槓桿區，顯示三商品區
-      if($s("singleLevArea")) $s("singleLevArea").style.display="none";
-      if($s("perAssetLevArea")) $s("perAssetLevArea").style.display="block";
-      // 顯示藍色說明橫幅
-      let bar=$s("sMultiLevBar");
+    // 顯示/隱藏模式標籤
+    const badge=$s("sMultiLevBadge");
+    if(badge) badge.style.display=enabled?"inline-block":"none";
+    // 切換槓桿區顯示
+    if($s("singleLevArea")) $s("singleLevArea").style.display=enabled?"none":"block";
+    if($s("perAssetLevArea")) $s("perAssetLevArea").style.display=enabled?"block":"none";
+    // 顯示/隱藏說明橫幅
+    let bar=$s("sMultiLevBar");
+    if(enabled){
       if(!bar){
         bar=document.createElement("div");
         bar.id="sMultiLevBar";
         bar.style.cssText="display:flex;gap:10px;align-items:flex-start;background:#eff6ff;border:1.5px solid #93c5fd;border-radius:10px;padding:10px 14px;margin-bottom:8px;";
         bar.innerHTML=`<div style="font-size:20px;flex-shrink:0;">🔀</div><div><div style="font-size:13px;font-weight:700;color:#1d4ed8;">多商品槓桿模式已啟用</div><div style="font-size:11.5px;color:#1e40af;margin-top:2px;">請為每種商品分別設定槓桿倍數，G欄統一槓桿在此模式不生效。</div></div>`;
-        const levSection=$s("singleLevArea")?.parentElement;
-        if(levSection) levSection.insertBefore(bar, levSection.firstChild);
+        const levDiv=$s("singleLevArea")?.parentElement;
+        if(levDiv) levDiv.insertBefore(bar, levDiv.firstChild);
       }
       bar.style.display="flex";
     } else {
-      const bar=$s("sMultiLevBar");
       if(bar) bar.style.display="none";
     }
   }
@@ -713,7 +705,7 @@ function hideStudentPortal(){}
     const cr=parseInt($s("sCryptoRange")?.value)||0;
     if(sk+bd+cr!==100){sToast("⚠️ 三種資產合計必須 = 100%！");return;}
     const lev = sSession.levLocked ? 1.0 : parseInt($s("sLevRange").value)/10;
-    const usePerAsset = sSession.levLocked ? false : ($s("chkPerAssetLev")?.checked||false);
+    const usePerAsset = !sSession.levLocked && !!sSession.multiLevMode;
     const stockLev  = (sSession.levLocked||!usePerAsset) ? lev : (parseInt($s("sStockLevRange")?.value??10)/10);
     const bondLev   = (sSession.levLocked||!usePerAsset) ? lev : (parseInt($s("sBondLevRange")?.value??10)/10);
     const cryptoLev = (sSession.levLocked||!usePerAsset) ? lev : (parseInt($s("sCryptoLevRange")?.value??10)/10);
