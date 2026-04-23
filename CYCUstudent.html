@@ -603,6 +603,32 @@ function hideStudentPortal(){}
     }
   }
 
+  function sSetMultiLevMode(enabled){
+    sSession.multiLevMode = enabled;
+    if(enabled && !sSession.levLocked){
+      // 自動勾選三商品獨立槓桿
+      const chk=$s("chkPerAssetLev");
+      if(chk && !chk.checked){ chk.checked=true; chk.dispatchEvent(new Event("change")); }
+      // 隱藏統一槓桿區，顯示三商品區
+      if($s("singleLevArea")) $s("singleLevArea").style.display="none";
+      if($s("perAssetLevArea")) $s("perAssetLevArea").style.display="block";
+      // 顯示藍色說明橫幅
+      let bar=$s("sMultiLevBar");
+      if(!bar){
+        bar=document.createElement("div");
+        bar.id="sMultiLevBar";
+        bar.style.cssText="display:flex;gap:10px;align-items:flex-start;background:#eff6ff;border:1.5px solid #93c5fd;border-radius:10px;padding:10px 14px;margin-bottom:8px;";
+        bar.innerHTML=`<div style="font-size:20px;flex-shrink:0;">🔀</div><div><div style="font-size:13px;font-weight:700;color:#1d4ed8;">多商品槓桿模式已啟用</div><div style="font-size:11.5px;color:#1e40af;margin-top:2px;">請為每種商品分別設定槓桿倍數，G欄統一槓桿在此模式不生效。</div></div>`;
+        const levSection=$s("singleLevArea")?.parentElement;
+        if(levSection) levSection.insertBefore(bar, levSection.firstChild);
+      }
+      bar.style.display="flex";
+    } else {
+      const bar=$s("sMultiLevBar");
+      if(bar) bar.style.display="none";
+    }
+  }
+
   $s("sBtnRefresh")?.addEventListener("click",async()=>{
     if(!sSession.groupKey){sToast("尚未登入");return;}
     try{
@@ -614,11 +640,13 @@ function hideStudentPortal(){}
         const serverRound = res.currentRound ?? null;
         const serverLocked = res.roundLocked ?? sSession.roundLocked;
         const serverLevLocked2 = res.leverageLocked ?? false;
+        const serverMultiLev2  = res.multiLevEnabled ?? false;
         if(serverRound !== null){
           sUpdateRound(serverRound, serverLocked);
           sSetLocked(serverLocked);
         }
         sSetLevLocked(serverLevLocked2);
+        sSetMultiLevMode(serverMultiLev2);
         // Find latest decision for this group (02decision: B=學期班級, C=組別)
         const gKeyParts2 = sSession.groupKey.split("_");
         const gGroupName2 = gKeyParts2[gKeyParts2.length-1]; // "第2組"
@@ -715,10 +743,11 @@ function hideStudentPortal(){}
           semClass:   gSemClass,                     // B欄：學期班級（如 1141甲班）
           groupName:  gGroupName,                    // C欄：組別（如 第1組）
           stockWeight: sk, bondWeight: bd, cryptoWeight: cr,
-          leverage: isFinite(lev) ? lev : 1.0,
-          stockLeverage:  isFinite(stockLev)  ? stockLev  : lev,
-          bondLeverage:   isFinite(bondLev)   ? bondLev   : lev,
-          cryptoLeverage: isFinite(cryptoLev) ? cryptoLev : lev,
+          // 多商品槓桿模式：G欄空白，改用 J/K/L 三欄
+          leverage:       sSession.multiLevMode ? "" : (isFinite(lev) ? lev : 1.0),
+          stockLeverage:  sSession.multiLevMode ? (isFinite(stockLev)  ? stockLev  : lev) : "",
+          bondLeverage:   sSession.multiLevMode ? (isFinite(bondLev)   ? bondLev   : lev) : "",
+          cryptoLeverage: sSession.multiLevMode ? (isFinite(cryptoLev) ? cryptoLev : lev) : "",
           usePerAssetLeverage: usePerAsset,
           strategyNote: strategy + (sSession.customName ? ` [${sSession.customName}]` : ""),
           teacherNote: sSession.customName || ""      // I欄：自訂組名備註
@@ -754,8 +783,10 @@ function hideStudentPortal(){}
         const serverRound = res.currentRound ?? null;
         const serverLocked = res.roundLocked ?? sSession.roundLocked;
         const serverLevLocked = res.leverageLocked ?? false;
+        const serverMultiLev  = res.multiLevEnabled ?? false;
         if(serverRound !== null){ sUpdateRound(serverRound, serverLocked); sSetLocked(serverLocked); }
         sSetLevLocked(serverLevLocked);
+        sSetMultiLevMode(serverMultiLev);
 
         // 從 roundHistory（01reborn/回合紀錄）讀取此組別的回合績效
         // 欄位：A=回合 B=抽序 C=不放回 D=日期 E=事件名 F=組別 G=槓桿 H=報酬% I=前資產 J=後資產 K=損益
