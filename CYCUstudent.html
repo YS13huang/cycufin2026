@@ -569,11 +569,6 @@ function hideStudentPortal(){}
       });
     }
   }
-      bar.style.display="flex";
-    } else {
-      if(bar) bar.style.display="none";
-    }
-  }
 
   $s("sBtnRefresh")?.addEventListener("click",async()=>{
     if(!sSession.groupKey){sToast("尚未登入");return;}
