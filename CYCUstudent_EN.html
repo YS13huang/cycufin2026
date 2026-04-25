@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Dr. Huang Investment Simulation — Student Portal</title>
+  <title>Dr. Huang Investment Simulation | Student Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
     :root{
       --card:rgba(255,255,255,0.92); --ink:#0f141a; --muted:rgba(15,20,26,0.58);
@@ -16,7 +16,7 @@
     }
     *{box-sizing:border-box;margin:0;padding:0;}
     body{
-      font-family:'Inter',system-ui,sans-serif;
+      font-family:'Noto Sans TC',system-ui,sans-serif;
       color:var(--ink);
       min-height:100vh;
       overflow-x:hidden;
@@ -104,7 +104,7 @@
     .sSaveStatus2{text-align:center;font-size:12px;min-height:20px;margin-top:8px;color:#64748b;}
     .sSaveStatus2.ok{color:#059669;font-weight:600;} .sSaveStatus2.err{color:#ef4444;}
 
-    /* ===== Class Ranking Panel ===== */
+    /* ===== 班級排面板 ===== */
     .sRankCard{background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.06);padding:18px;margin-bottom:12px;}
     .sRankTitle{font-size:14px;font-weight:700;color:#0f172a;margin-bottom:12px;display:flex;align-items:center;gap:8px;justify-content:space-between;}
     .sRankToolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
@@ -121,6 +121,19 @@
     .sRankBadge.rank2{background:linear-gradient(135deg,#94a3b8,#cbd5e1);color:#fff;}
     .sRankBadge.rank3{background:linear-gradient(135deg,#b45309,#d97706);color:#fff;}
     .sRankChartWrap{background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-radius:12px;border:1px solid #e2e8f0;padding:8px;position:relative;overflow:hidden;}
+
+    /* ===== SPECIAL NOTIFICATIONS (Cat & Gambling) ===== */
+    #sSpecialNotifLayer{position:fixed;inset:0;z-index:9500;pointer-events:none;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+    .sSpecialCard{pointer-events:auto;border-radius:24px;padding:28px 32px;max-width:min(420px,94vw);color:#fff;box-shadow:0 40px 100px rgba(0,0,0,0.7);text-align:center;animation:sCardPop .5s cubic-bezier(.34,1.56,.64,1);}
+    .sSpecialCard.cat{background:linear-gradient(135deg,#4c1d95,#7c3aed);border:2px solid rgba(167,139,250,0.6);}
+    .sSpecialCard.gambling{background:linear-gradient(135deg,#7f1d1d,#dc2626);border:2px solid rgba(252,165,165,0.5);}
+    @keyframes sCardPop{from{transform:scale(0.4) translateY(60px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
+    .sCatVideoWrap{width:min(240px,80vw);margin:0 auto 12px;border-radius:16px;overflow:hidden;background:#000;}
+    .sCatVideoWrap video{width:100%;display:block;}
+    .sSpecialTitle{font-size:20px;font-weight:900;margin-bottom:8px;}
+    .sSpecialBody{font-size:13px;color:rgba(255,255,255,0.85);line-height:1.7;margin-bottom:14px;}
+    .sSpecialClose{padding:10px 24px;border-radius:11px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.15);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;}
+    .sSpecialClose:hover{background:rgba(255,255,255,0.28);}
   </style>
 </head>
 <body>
@@ -147,36 +160,36 @@
         <div class="sLoginCard">
           <div class="sBadge2">🎓 STUDENT PORTAL</div>
           <div class="sTitle">Dr. Huang<br>Investment Simulation | Student Portal</div>
-          <div class="sSub">Select your class and group, then enter your password to log in.<br>First-time users: please register a new group to set a password.</div>
+          <div class="sSub">Select class & group, enter password to log in<br>First time? Register your group below</div>
 
           <div id="sLoginForm">
-            <label class="sLbl">📅 Semester / Class</label>
+            <label class="sLbl">📅 Class / Semester</label>
             <select class="sSel" id="sSelClass" style="margin-bottom:6px;"></select>
-            <div class="sAddRow"><input type="text" id="sInpNewClass" placeholder="Add class (e.g. Fall2025-A)"/><button id="sBtnAddClass">+ Add</button></div>
+            <div class="sAddRow"><input type="text" id="sInpNewClass" placeholder="Add class (e.g. Spring 2025A)"/><button id="sBtnAddClass">＋ 新增</button></div>
             <label class="sLbl">👥 Group</label>
             <select class="sSel" id="sSelGroup" style="margin-bottom:6px;"></select>
-            <div class="sAddRow"><input type="text" id="sInpNewGroup" placeholder="Add group (e.g. Group 13)"/><button id="sBtnAddGroup">+ Add</button></div>
+            <div class="sAddRow"><input type="text" id="sInpNewGroup" placeholder="Add group (e.g. Group 13)"/><button id="sBtnAddGroup">＋ 新增</button></div>
             <label class="sLbl">🔑 Group Password</label>
-            <input class="sInp" type="password" id="sLoginPwd" placeholder="Enter your group password" autocomplete="off" style="margin-top:4px;"/>
-            <button class="sBtn2 sBtn2-green" id="sBtnLogin" style="margin-top:14px;">🚀 Log In to My Group</button>
+            <input class="sInp" type="password" id="sLoginPwd" placeholder="Enter group password" autocomplete="off" style="margin-top:4px;"/>
+            <button class="sBtn2 sBtn2-green" id="sBtnLogin" style="margin-top:14px;">🚀 Log In</button>
             <div class="sDivider2"><span>Don't have an account?</span></div>
             <button class="sBtn2 sBtn2-purple" id="sBtnGoReg">📝 Register New Group</button>
             <div class="sMsg2" id="sLoginMsg"></div>
           </div>
 
           <div id="sRegForm" style="display:none;">
-            <label class="sLbl">📅 Semester / Class</label>
+            <label class="sLbl">📅 Class / Semester</label>
             <select class="sSel" id="sRegClass" style="margin-bottom:6px;"></select>
             <div class="sAddRow"><input type="text" id="sInpNewClass2" placeholder="Add class"/><button id="sBtnAddClass2">＋</button></div>
             <label class="sLbl">👥 Group</label>
             <select class="sSel" id="sRegGroup" style="margin-bottom:6px;"></select>
             <div class="sAddRow"><input type="text" id="sInpNewGroup2" placeholder="Add group"/><button id="sBtnAddGroup2">＋</button></div>
-            <label class="sLbl">✏️ Custom Group Name (optional)</label>
+            <label class="sLbl">✏️ Custom name (optional)</label>
             <input class="sInp" type="text" id="sRegName" placeholder="e.g. Dream Team (leave blank to use class_group)" style="margin-top:4px;"/>
             <label class="sLbl">🔑 Set Group Password</label>
-            <input class="sInp" type="password" id="sRegPwd" placeholder="Set password (remember it as a group)" style="margin-top:4px;"/>
+            <input class="sInp" type="password" id="sRegPwd" placeholder="Set password (remember as a team)" style="margin-top:4px;"/>
             <input class="sInp" type="password" id="sRegPwd2" placeholder="Confirm password" style="margin-top:6px;"/>
-            <button class="sBtn2 sBtn2-green" id="sBtnRegister" style="margin-top:14px;">✅ Register & Log In</button>
+            <button class="sBtn2 sBtn2-green" id="sBtnRegister" style="margin-top:14px;">✅ Complete Registration</button>
             <div class="sDivider2"><span>Already have an account?</span></div>
             <button class="sBtn2 sBtn2-plain" id="sBtnGoLogin">← Back to Login</button>
             <div class="sMsg2" id="sRegMsg"></div>
@@ -192,7 +205,7 @@
             <span id="sBarKey"></span>
           </div>
           <div class="sTopBtns2">
-            <button class="sTopBtn2" id="sBtnRefresh">🔄 Refresh</button>
+            <button class="sTopBtn2" id="sBtnRefresh">🔄 🔄 Refresh</button>
             <button class="sTopBtn2" id="sBtnLogout">Log Out</button>
           </div>
         </div>
@@ -202,43 +215,43 @@
         <div class="sLockBar" id="sLockBar">
           <div style="font-size:24px;flex-shrink:0;">🔒</div>
           <div>
-            <div style="font-size:13px;font-weight:700;color:#dc2626;">Round Locked — Strategy cannot be modified</div>
-            <div style="font-size:11.5px;color:#7f1d1d;margin-top:2px;">The instructor is running this round. It will unlock automatically when done.</div>
+            <div style="font-size:13px;font-weight:700;color:#dc2626;">Round Locked — decisions cannot be changed</div>
+            <div style="font-size:11.5px;color:#7f1d1d;margin-top:2px;">Teacher is running this round. Auto-unlocks when done.</div>
           </div>
         </div>
 
         <div class="sAppCard">
-          <div class="sAppTitle">📊 My Investment Performance</div>
+          <div class="sAppTitle">📊 My Performance</div>
           <div class="sPGrid">
             <div class="sPCard"><div class="sPLabel">Current Assets</div><div class="sPVal acc" id="sPCash">--</div></div>
-            <div class="sPCard" id="sPRetCard"><div class="sPLabel">Cumulative Return</div><div class="sPVal" id="sPRet">--</div></div>
+            <div class="sPCard" id="sPRetCard"><div class="sPLabel">Total Return</div><div class="sPVal" id="sPRet">--</div></div>
             <div class="sPCard"><div class="sPLabel">Rounds Played</div><div class="sPVal" id="sPRounds">0</div></div>
           </div>
           <div style="margin:10px 0 8px;position:relative;background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;padding:8px;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:4px;">📈 Portfolio Return Trend (%)</div>
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:4px;">📈 Return Trend (%)</div>
             <canvas id="sPerformanceChart" style="width:100%;height:160px;display:none;"></canvas>
-            <div id="sChartEmpty" style="text-align:center;color:#94a3b8;font-size:12px;padding:40px 0;">Chart will appear after rounds are executed</div>
+            <div id="sChartEmpty" style="text-align:center;color:#94a3b8;font-size:12px;padding:40px 0;">Run a round to see the chart</div>
           </div>
           <div style="font-size:11px;color:#64748b;margin-bottom:7px;font-weight:600;">📋 My Round History (newest first)</div>
           <div style="overflow:auto;max-height:200px;border-radius:10px;border:1px solid #e2e8f0;">
             <table class="sTable2">
-              <thead><tr><th>Round</th><th>Date</th><th>Event</th><th>Return%</th><th>Assets</th><th>P&amp;L</th></tr></thead>
+              <thead><tr><th>Round</th><th>Date</th><th>Event</th><th>Return%</th><th>Assets</th><th>P&L</th></tr></thead>
               <tbody id="sHistBody"></tbody>
             </table>
           </div>
         </div>
 
         <div class="sAppCard">
-          <div class="sAppTitle">⚙️ Investment Decision Settings
+          <div class="sAppTitle">⚙️ Investment Decision
             <span id="sDecisionStatus" style="font-size:11px;font-weight:400;color:#64748b;margin-left:auto;"></span>
           </div>
-          <div style="font-size:11.5px;color:#64748b;margin-bottom:12px;">Adjust three asset allocations (total = 100%), set leverage, then save.</div>
+          <div style="font-size:11.5px;color:#64748b;margin-bottom:12px;">Adjust allocation (total = 100%), set leverage, then save.</div>
           <div class="sAssetRow2">
-            <div class="sAssetTop2"><span class="sAssetName2 sk">📈 Stocks</span><span class="sAssetPct2 sk" id="sStockVal">33%</span></div>
+            <div class="sAssetTop2"><span class="sAssetName2 sk">📈 Stock</span><span class="sAssetPct2 sk" id="sStockVal">33%</span></div>
             <input type="range" class="sRange2 sk" id="sStockRange" min="0" max="100" step="1" value="33"/>
           </div>
           <div class="sAssetRow2">
-            <div class="sAssetTop2"><span class="sAssetName2 bd">📋 Bonds</span><span class="sAssetPct2 bd" id="sBondVal">33%</span></div>
+            <div class="sAssetTop2"><span class="sAssetName2 bd">📋 Bond</span><span class="sAssetPct2 bd" id="sBondVal">33%</span></div>
             <input type="range" class="sRange2 bd" id="sBondRange" min="0" max="100" step="1" value="33"/>
           </div>
           <div class="sAssetRow2">
@@ -246,7 +259,7 @@
             <input type="range" class="sRange2 cr" id="sCryptoRange" min="0" max="100" step="1" value="34"/>
           </div>
           <div class="sSumBar2 ok" id="sSumBar2">
-            <span class="sSumLabel2 ok" id="sSumLabel2">✅ Allocation Total = 100%</span>
+            <span class="sSumLabel2 ok" id="sSumLabel2">✅ Total = 100%</span>
             <span class="sSumVal2 ok" id="sSumVal2">100%</span>
           </div>
           <div style="height:1px;background:#e2e8f0;margin:14px 0;"></div>
@@ -255,33 +268,35 @@
             <input type="range" class="sRange2 lv" id="sLevRange" min="-9" max="15" step="1" value="10" style="flex:1;"/>
             <span class="sLevVal2" id="sLevVal">1.0×</span>
           </div>
-          <div style="font-size:11px;color:#64748b;margin-top:4px;text-align:right;">-0.9× (Inverse) | 1.0× (Standard) | 1.5× (Max)</div>
+          <div style="font-size:11px;color:#64748b;margin-top:4px;text-align:right;">-1.5× (short) | 1.0× (standard) | 1.5×(max)</div>
           <div style="height:1px;background:#e2e8f0;margin:14px 0;"></div>
-          <label style="display:block;font-size:12px;font-weight:600;color:#64748b;margin-bottom:7px;">💬 Strategy Notes (optional)</label>
-          <textarea class="sTextarea2" id="sStrategy" placeholder="Explain your investment rationale for this round…"></textarea>
-          <button class="sSaveBtn2" id="sBtnSave">💾 Save This Round's Decision</button>
+          <label style="display:block;font-size:12px;font-weight:600;color:#64748b;margin-bottom:7px;">💬 Strategy Note (optional)</label>
+          <textarea class="sTextarea2" id="sStrategy" placeholder="Briefly describe your strategy…"></textarea>
+          <button class="sSaveBtn2" id="sBtnSave">💾 Save Decision</button>
           <div class="sSaveStatus2" id="sSaveStatus2"></div>
         </div>
 
-        <!-- Class Performance Ranking -->
+        <!-- Class performance ranking -->
         <div class="sRankCard" id="sRankCardWrap">
           <div class="sRankTitle">
-            <span>🏆 Class Performance Ranking (Last Round)</span>
-            <button class="sRankToggleBtn" id="sBtnRefreshRank" style="font-size:11px;">🔄 Refresh</button>
+            <span>🏆 Class Performance Ranking(Last Round)</span>
+            <button class="sRankToggleBtn" id="sBtnRefreshRank" style="font-size:11px;">🔄 🔄 Refresh Rankings</button>
           </div>
           <div class="sRankToolbar">
-            <button class="sRankToggleBtn active" id="sBtnShowAllGroups">👁 Show All Groups</button>
+            <button class="sRankToggleBtn active" id="sBtnShowAllGroups">👁 Show All</button>
             <button class="sRankToggleBtn" id="sBtnHideOthers">🙈 My Group Only</button>
             <span style="font-size:11px;color:#64748b;margin-left:4px;" id="sRankRoundLabel"></span>
           </div>
+          <!-- Line chart -->
           <div class="sRankChartWrap" style="margin-bottom:10px;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:4px;">📈 All Groups — Cumulative Return % over Rounds</div>
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;margin-bottom:4px;">📈 Group Asset Return Trend (%)</div>
             <canvas id="sClassChart" style="width:100%;height:180px;display:block;"></canvas>
-            <div id="sClassChartEmpty" style="text-align:center;color:#94a3b8;font-size:12px;padding:40px 0;">Class round history will appear here</div>
+            <div id="sClassChartEmpty" style="text-align:center;color:#94a3b8;font-size:12px;padding:40px 0;">Load class round data to display</div>
           </div>
+          <!-- Ranking table -->
           <div style="overflow:auto;max-height:240px;border-radius:10px;border:1px solid #e2e8f0;">
             <table class="sRankTable">
-              <thead><tr><th>Rank</th><th>Group</th><th>Latest Assets</th><th>Total Return %</th><th>Rounds</th></tr></thead>
+              <thead><tr><th>Rank</th><th>Group</th><th>Assets</th><th>Total Return%</th><th>Rounds</th></tr></thead>
               <tbody id="sRankBody"></tbody>
             </table>
           </div>
@@ -293,6 +308,9 @@
     </div>
   </div>
 </div>
+
+<!-- ===== SPECIAL NOTIFICATION LAYER ===== -->
+<div id="sSpecialNotifLayer"></div>
 
 <script>
 // ============================================================
@@ -317,7 +335,7 @@ function hideStudentPortal(){}
 
   async function sgsFetch(action,payload={}){
     if(window.__SANDBOX_MODE__){
-      throw new Error("Sandbox mode: cannot connect. Please deploy to GitHub Pages first.");
+      throw new Error("Cannot connect in sandbox. Please deploy to GitHub Pages.");
     }
     const body=new URLSearchParams({action,payload:JSON.stringify(payload)});
     const res=await fetch(GS_STUDENT_URL,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:body.toString(),redirect:"follow"});
@@ -329,9 +347,9 @@ function hideStudentPortal(){}
   let sSession={groupKey:"",groupName:"",semClass:"",pwdHash:"",roundLocked:false};
 
   const DEF_CLASSES=["1142甲班","1142乙班","1151甲班","1151乙班","1141甲班","1141乙班"];
-  function sLoadClasses(){const s=localStorage.getItem("s_classes");return s?JSON.parse(s):[...DEF_CLASSES];}
+  function sLoadClasses(){try{const s=localStorage.getItem("s_classes");return s?JSON.parse(s):[...DEF_CLASSES];}catch(e){return[...DEF_CLASSES];}}
   function sSaveClasses(a){localStorage.setItem("s_classes",JSON.stringify(a));}
-  function sLoadGroups(){const s=localStorage.getItem("s_groups");return s?JSON.parse(s):Array.from({length:20},(_,i)=>`第${i+1}組`);}
+  function sLoadGroups(){try{const s=localStorage.getItem("s_groups");return s?JSON.parse(s):Array.from({length:20},(_,i)=>`Group ${i+1}`);}catch(e){return Array.from({length:20},(_,i)=>`Group ${i+1}`);}}
   function sSaveGroups(a){localStorage.setItem("s_groups",JSON.stringify(a));}
 
   function sPop(id,items,placeholder){
@@ -340,13 +358,13 @@ function hideStudentPortal(){}
   }
   window.sRefreshDropdowns=function(){
     const c=sLoadClasses(),g=sLoadGroups();
-    sPop("sSelClass",c,"Select Semester / Class");sPop("sSelGroup",g,"Select Group");
-    sPop("sRegClass",c,"Select Semester / Class");sPop("sRegGroup",g,"Select Group");
+    sPop("sSelClass",c,"Select Class / Semester");sPop("sSelGroup",g,"Select Group");
+    sPop("sRegClass",c,"Select Class / Semester");sPop("sRegGroup",g,"Select Group");
   };
 
   function wireAdd(inpId,btnId,loadFn,saveFn){
     $s(btnId)?.addEventListener("click",()=>{
-      const v=$s(inpId)?.value?.trim();if(!v){sToast("Please enter a name");return;}
+      const v=$s(inpId)?.value?.trim();if(!v){sToast("Enter a name");return;}
       const a=loadFn();if(!a.includes(v)){a.push(v);saveFn(a);window.sRefreshDropdowns();sToast("✅ Added: "+v);}
       else sToast("Already exists");if($s(inpId))$s(inpId).value="";
     });
@@ -361,9 +379,9 @@ function hideStudentPortal(){}
 
   async function sDoLogin(){
     const sc=$s("sSelClass")?.value,gn=$s("sSelGroup")?.value,pwd=$s("sLoginPwd")?.value?.trim();
-    if(!sc){sSMsg("sLoginMsg","⚠️ Select Semester / Class","err");return;}
+    if(!sc){sSMsg("sLoginMsg","⚠️ Select Class / Semester","err");return;}
     if(!gn){sSMsg("sLoginMsg","⚠️ Select Group","err");return;}
-    if(!pwd){sSMsg("sLoginMsg","⚠️ Please enter a password","err");return;}
+    if(!pwd){sSMsg("sLoginMsg","⚠️ Enter password","err");return;}
     const groupKey=`${sc}_${gn}`;
     sSMsg("sLoginMsg","⏳ Verifying…","info");
     try{
@@ -397,7 +415,7 @@ function hideStudentPortal(){}
       sSMsg("sLoginMsg","❌ Account not found or wrong password. Please register first.","err");
     }catch(e){
       const cached=localStorage.getItem(`student_${gn}_${sc}`);
-      if(cached){const obj=JSON.parse(cached);sSMsg("sLoginMsg","⚠️ Connection failed, attempted offline login","info");return;}
+      if(cached){const obj=JSON.parse(cached);sSMsg("sLoginMsg","⚠️ Connection failed, offline login attempted","info");return;}
       sSMsg("sLoginMsg","❌ Connection failed: "+e.message,"err");
     }
   }
@@ -408,13 +426,13 @@ function hideStudentPortal(){}
     const sc=$s("sRegClass")?.value,gn=$s("sRegGroup")?.value;
     const name=$s("sRegName")?.value?.trim();
     const pwd=$s("sRegPwd")?.value,pwd2=$s("sRegPwd2")?.value;
-    if(!sc){sSMsg("sRegMsg","⚠️ Select Semester / Class","err");return;}
+    if(!sc){sSMsg("sRegMsg","⚠️ Select Class / Semester","err");return;}
     if(!gn){sSMsg("sRegMsg","⚠️ Select Group","err");return;}
     if(!pwd){sSMsg("sRegMsg","⚠️ Please set a password","err");return;}
     if(pwd!==pwd2){sSMsg("sRegMsg","❌ Passwords do not match","err");return;}
     const groupKey=`${sc}_${gn}`;
-    const customName=name||"";  // Custom name (for student display only)
-    const stdGroupName=sc+"_"+gn;  // Standard name (for teacher matching)
+    const customName=name||"";  // custom name (display only)
+    const stdGroupName=sc+"_"+gn;  // standard name (for teacher matching)
     sSMsg("sRegMsg","⏳ Registering…","info");
     const pwdHash=await sHash(pwd+groupKey);
     localStorage.setItem(`student_${groupKey}`,JSON.stringify({
@@ -425,7 +443,7 @@ function hideStudentPortal(){}
         pushTime:new Date().toISOString(),events:[],history:[],decisions:[],groups:[],
         accounts:[{className:sc,groupNo:gn,groupPassword:"",customGroupName:customName,selfPassword:pwdHash.slice(0,8)}]
       });
-      sSMsg("sRegMsg","✅ Registration successful!","ok");
+      sSMsg("sRegMsg","✅ Registered!","ok");
       setTimeout(()=>{
         sSession={groupKey,groupName:stdGroupName,customName,semClass:sc,pwdHash,roundLocked:false};
         sEnterApp({stockPct:33,bondPct:33,cryptoPct:34,leverage:1.0,strategy:"",roundLocked:false});
@@ -442,12 +460,12 @@ function hideStudentPortal(){}
   function sEnterApp(data){
     $s("sLoginArea").style.display="none";
     $s("sAppArea").style.display="block";
-    // Show custom name (if set), standard name in parentheses
+    // show custom name if set, with standard name in parens
     const displayName = sSession.customName
       ? `${sSession.customName}（${sSession.groupKey.split("_").pop()}）`
       : (sSession.groupName || sSession.groupKey);
     $s("sBarName").textContent = displayName;
-    $s("sBarKey").textContent=`${sSession.semClass} ／ ${sSession.groupKey}`;
+    $s("sBarKey").textContent=`${sSession.semClass} / ${sSession.groupKey}`;
     if(data.stockPct!=null)$s("sStockRange").value=Math.round(Number(data.stockPct));
     if(data.bondPct!=null)$s("sBondRange").value=Math.round(Number(data.bondPct));
     if(data.cryptoPct!=null)$s("sCryptoRange").value=Math.round(Number(data.cryptoPct));
@@ -455,11 +473,11 @@ function hideStudentPortal(){}
     if(data.strategy)$s("sStrategy").value=data.strategy;
     sUpdateSliders();sSetLocked(!!sSession.roundLocked);
     sSession.savedThisRound = false; // reset save flag
-    if($s("sBtnSave"))$s("sBtnSave").textContent="💾 Save This Round's Decision";
+    if($s("sBtnSave"))$s("sBtnSave").textContent="💾 Save Decision";
     // Sync round from teacher state if available
-    try{const r=typeof state!=="undefined"?state.round:0;sUpdateRound(r,sSession.roundLocked);}catch(e){}
+    if($s("sRoundNum"))$s("sRoundNum").textContent="--";
     sLoadHistory();
-    sToast("✅ Welcome, "+sSession.groupName+"！");
+    sToast("✅ Welcome, "+sSession.groupName+"!");
   }
 
   function sUpdateRound(round,locked){
@@ -484,7 +502,7 @@ function hideStudentPortal(){}
     if($s("sCryptoVal"))$s("sCryptoVal").textContent=cr+"%";
     const total=sk+bd+cr,ok=total===100;
     if($s("sSumVal2")){$s("sSumVal2").textContent=total+"%";$s("sSumVal2").className="sSumVal2 "+(ok?"ok":"warn");}
-    if($s("sSumLabel2")){$s("sSumLabel2").textContent=ok?"✅ Allocation Total = 100%":"⚠️ Total ≠ 100%, please adjust";$s("sSumLabel2").className="sSumLabel2 "+(ok?"ok":"warn");}
+    if($s("sSumLabel2")){$s("sSumLabel2").textContent=ok?"✅ Total = 100%":"⚠️ Total ≠ 100%, please adjust";$s("sSumLabel2").className="sSumLabel2 "+(ok?"ok":"warn");}
     if($s("sSumBar2"))$s("sSumBar2").className="sSumBar2 "+(ok?"ok":"warn");
     if($s("sBtnSave"))$s("sBtnSave").disabled=(!ok||sSession.roundLocked);
   }
@@ -496,10 +514,22 @@ function hideStudentPortal(){}
     sSession.roundLocked=locked;
     $s("sLockBar")?.classList.toggle("show",locked);
     sUpdateSliders();
-    // When round unlocks, reset save flag (new round starts)
+    // when round unlocks, reset save flag (new round starting)
     if(wasLocked && !locked){
       sSession.savedThisRound = false;
-      if($s("sBtnSave"))$s("sBtnSave").textContent="💾 Save This Round's Decision";
+      if($s("sBtnSave"))$s("sBtnSave").textContent="💾 Save Decision";
+    }
+  }
+
+  function sSetLevLocked(locked){
+    sSession.levLocked = locked;
+    const bar=$s("sLevLockBar");
+    if(bar) bar.style.display=locked?"flex":"none";
+    if(locked){
+      const levEl=$s("sLevRange"); if(levEl){levEl.disabled=true;levEl.value=10;}
+      const levVal=$s("sLevVal"); if(levVal)levVal.textContent="1.0×";
+    } else {
+      const levEl=$s("sLevRange"); if(levEl)levEl.disabled=false;
     }
   }
 
@@ -517,10 +547,10 @@ function hideStudentPortal(){}
           sUpdateRound(serverRound, serverLocked);
           sSetLocked(serverLocked);
         }
-        // Find latest decision for this group
+        // Find latest decision for this group (02decision: B=Class / Semester, C=Group)
         const gKeyParts2 = sSession.groupKey.split("_");
         const gGroupName2 = gKeyParts2[gKeyParts2.length-1]; // "Group 2"
-        const gSemClass2  = gKeyParts2.slice(0,-1).join("_"); // "Fall2023-A"
+        const gSemClass2  = gKeyParts2.slice(0,-1).join("_"); // "1141甲班"
         const myRows = rows.filter(r=>{
           const rSem   = String(r[1]||"").trim();
           const rGroup = String(r[2]||"").trim();
@@ -528,10 +558,10 @@ function hideStudentPortal(){}
                  (rSem===gSemClass2 && rGroup===gGroupName2) ||
                  rGroup === sSession.groupKey; // fullName fallback
         });
-        const myRow = myRows[myRows.length-1]; // get latest entry
-        const myRowLatest = myRows.length ? myRows[myRows.length-1] : null; // get latest entry
+        const myRow = myRows[myRows.length-1]; // take the latest entry
+        const myRowLatest = myRows.length ? myRows[myRows.length-1] : null; // take the latest entry
         if(myRowLatest){
-          // 02decision: D=stock%, E=bond%, F=crypto%, G=leverage, H=strategy
+          // 02decision: D=股票%, E=債券%, F=加密%, G=槓桿, H=策略
           if(myRowLatest[3]!=null)$s("sStockRange").value=Math.round(Number(myRowLatest[3]||33));
           if(myRowLatest[4]!=null)$s("sBondRange").value=Math.round(Number(myRowLatest[4]||33));
           if(myRowLatest[5]!=null)$s("sCryptoRange").value=Math.round(Number(myRowLatest[5]||34));
@@ -540,7 +570,7 @@ function hideStudentPortal(){}
           if($s("sLevVal"))$s("sLevVal").textContent=(parseInt($s("sLevRange")?.value||10)/10).toFixed(1)+"×";
           sUpdateSliders();
         }
-        // Update performance from roundHistory
+        // 從 roundHistory 更新績效
         const roundHistory2 = res.roundHistory||[];
         const gKeyParts3 = sSession.groupKey.split("_");
         const fullName3  = sSession.groupKey;
@@ -557,7 +587,10 @@ function hideStudentPortal(){}
           if($s("sChartEmpty"))$s("sChartEmpty").style.display="none";
         } else { sLoadHistory(); }
 
-        if($s("sDecisionStatus"))$s("sDecisionStatus").textContent="Last synced: "+new Date().toLocaleTimeString("en-US");
+        // update class ranking (using full roundHistory2)
+        if(roundHistory2.length) sProcessClassRankData(roundHistory2);
+
+        if($s("sDecisionStatus"))$s("sDecisionStatus").textContent="Last sync: "+new Date().toLocaleTimeString("zh-TW");
         const dispRound = serverRound!==null ? serverRound : (myRounds3.length?Math.max(...myRounds3.map(r=>Number(r[0]||0))):0);
         sToast(`🔄 Synced | Round ${dispRound} ${serverLocked?" 🔒":" 🔓"}`);
       }else sToast("⚠️ Sync failed, please try again");
@@ -569,22 +602,22 @@ function hideStudentPortal(){}
     const sk=parseInt($s("sStockRange")?.value)||0;
     const bd=parseInt($s("sBondRange")?.value)||0;
     const cr=parseInt($s("sCryptoRange")?.value)||0;
-    if(sk+bd+cr!==100){sToast("⚠️ Three asset allocations must total 100%!");return;}
+    if(sk+bd+cr!==100){sToast("⚠️ Assets must total 100%!");return;}
     const lev=parseInt($s("sLevRange").value)/10;
     const strategy=$s("sStrategy")?.value?.trim()||"";
 
-    // If already saved this round, show confirm dialog
+    // if already saved this round, show confirmation dialog
     if(sSession.savedThisRound){
-      const confirmMsg="⚠️ You have already saved a decision this round!\n\nSaving again will overwrite the current allocation.\nThe instructor will use the latest entry.\n\nUpdate your strategy for this round?";
+      const confirmMsg="⚠️ You already saved this round!\n\nSaving again will overwrite it.\nTeacher sync uses the latest entry.\n\nConfirm update?";
       if(!window.confirm(confirmMsg))return;
     }
 
     const st=$s("sSaveStatus2");
     if(st){st.textContent="⏳ Saving…";st.className="sSaveStatus2";}
     try{
-      // Save decision: push to 02decision via push_all
-      // semClass = semester class, groupName = group
-      // customGroupName = custom name, for notes only
+      // Save decision: push to 02decision/學生策略填寫 via push_all
+      // semClass = Class / Semester（如 1141甲班），groupName = Group（如 第1組）
+      // customGroupName = 自訂（如 祥哥2號測試中）僅供備註，不影響匹配
       const gKeyParts = sSession.groupKey.split("_");
       const gSemClass = gKeyParts.slice(0,-1).join("_") || sSession.semClass;
       const gGroupName = gKeyParts[gKeyParts.length-1] || sSession.groupKey;
@@ -593,22 +626,22 @@ function hideStudentPortal(){}
         source:"student_portal", pushTime:new Date().toISOString(),
         events:[], history:[], accounts:[], groups:[],
         decisions:[{
-          time: new Date().toLocaleString("en-US",{timeZone:"Asia/Taipei"}),
-          semClass:   gSemClass,                     // Column B: semester class
-          groupName:  gGroupName,                    // Column C: group name
+          time: new Date().toLocaleString("zh-TW",{timeZone:"Asia/Taipei"}),
+          semClass:   gSemClass,                     // B欄：Class / Semester（如 1141甲班）
+          groupName:  gGroupName,                    // C欄：Group（如 第1組）
           stockWeight: sk, bondWeight: bd, cryptoWeight: cr,
           leverage: lev,
           strategyNote: strategy + (sSession.customName ? ` [${sSession.customName}]` : ""),
-          teacherNote: sSession.customName || ""      // Column I: custom group name note
+          teacherNote: sSession.customName || ""      // I欄：自訂組備註
         }]
       });
       if(res.status==="success") res.saved=true;
       if(res.ok&&(res.saved||res.status==="success")){
-        if(st){st.textContent="✅ Saved ("+new Date().toLocaleTimeString("en-US")+")";st.className="sSaveStatus2 ok";}
+        if(st){st.textContent="✅ Saved ("+new Date().toLocaleTimeString("zh-TW")+")";st.className="sSaveStatus2 ok";}
         sSession.savedThisRound = true;
-        if($s("sBtnSave"))$s("sBtnSave").textContent="💾 Update This Round's Decision (Saved)";
+        if($s("sBtnSave"))$s("sBtnSave").textContent="💾 Update Decision (saved)";
         sSession.savedThisRound=true;
-        if($s("sBtnSave"))$s("sBtnSave").textContent="💾 Update This Round (Already Saved)";
+        if($s("sBtnSave"))$s("sBtnSave").textContent="💾 Update Decision (already saved)";
         sToast("✅ Decision saved!");
         const cached=localStorage.getItem(`student_${sSession.groupKey}`);
         if(cached){const obj=JSON.parse(cached);obj.stockPct=sk;obj.bondPct=bd;obj.cryptoPct=cr;obj.leverage=lev;obj.strategy=strategy;localStorage.setItem(`student_${sSession.groupKey}`,JSON.stringify(obj));}
@@ -628,40 +661,45 @@ function hideStudentPortal(){}
     try{
       const res=await sgsFetch("get_decisions",{});
       if(res.ok||(res.status==="success")){
-        // Update round and lock status
+        // update round and lock state
         const serverRound = res.currentRound ?? null;
         const serverLocked = res.roundLocked ?? sSession.roundLocked;
         if(serverRound !== null){ sUpdateRound(serverRound, serverLocked); sSetLocked(serverLocked); }
 
-        // Read round performance from roundHistory
-        // Columns: A=round B=drawSeq C=noReplace D=date E=event F=group G=leverage H=return% I=preAssets J=postAssets K=PnL
+        // 從 roundHistory（01reborn/Round紀錄）讀取此Group的Round績效
+        // 欄位：A=Round B=抽序 C=不放回 D=日期 E=Event F=Group G=槓桿 H=報酬% I=前資產 J=After K=P&L
         const roundHistory = res.roundHistory||[];
         const gKeyParts = sSession.groupKey.split("_");
-        const gGroupName = gKeyParts[gKeyParts.length-1]; // "Group 2"
-        const gSemClass  = gKeyParts.slice(0,-1).join("_"); // "Fall2023-A"
-        const fullName   = sSession.groupKey; // "Fall2023-A_Group2"
+        const gGroupName = gKeyParts[gKeyParts.length-1];
+        const gSemClass  = gKeyParts.slice(0,-1).join("_");
+        const fullName   = sSession.groupKey;
 
-        // Match strategy: Column F (index 5) = group name (format: "class_group")
         const myRounds = roundHistory.filter(r=>{
           const rGroup = String(r[5]||"").trim();
-          return rGroup === fullName ||           // "Fall2023-A_Group3"
-                 rGroup === gGroupName ||         // "Group 3"
-                 rGroup === (gSemClass+"_"+gGroupName); // combined match
+          return rGroup === fullName || rGroup === gGroupName ||
+                 rGroup === (gSemClass+"_"+gGroupName) ||
+                 rGroup.endsWith("_"+gGroupName) || rGroup.includes(gGroupName);
         });
 
-        // Calculate max round from roundHistory
-        if(roundHistory.length > 0){
-          const maxRound = Math.max(...roundHistory.map(r=>Number(r[0]||0)));
-          if(maxRound > 0) sUpdateRound(maxRound, sSession.roundLocked);
+        // Round#: prefer GS currentRound, fallback to roundHistory max
+        let displayRound = serverRound;
+        if(!displayRound && roundHistory.length>0){
+          const nums=roundHistory.map(r=>Number(r[0]||0)).filter(n=>Number.isFinite(n)&&n>0);
+          if(nums.length) displayRound=Math.max(...nums);
         }
-
+        if(displayRound>0) sUpdateRound(displayRound, serverLocked);
+        if(myRounds.length>0 && displayRound>0){
+          const myMax=Math.max(...myRounds.map(r=>Number(r[0]||0)).filter(n=>n>0));
+          if(myMax>=displayRound){ sSession.savedThisRound=true;
+            if($s("sBtnSave"))$s("sBtnSave").textContent="💾 Update Decision (already saved)"; }
+        }
         if(myRounds.length){
           sRenderRoundHistory(myRounds);
           sRenderSummaryFromRounds(myRounds);
           sRenderPerformanceChart(myRounds);
           if($s("sChartEmpty"))$s("sChartEmpty").style.display="none";
         }else{
-          // fallback: read from decisions
+          // fallback：從 decisions 讀取（可能教師端尚未執行Round）
           const allRows=res.rows||[];
           const myRows=allRows.filter(r=>{
             const rSem=String(r[1]||"").trim(), rGroup=String(r[2]||"").trim();
@@ -669,17 +707,17 @@ function hideStudentPortal(){}
           });
           if(myRows.length){ sRenderHistory(myRows); }
         }
-        // Also load class ranking
+        // 也載入班級排
         sProcessClassRankData(roundHistory);
       }
     }catch(e){ console.warn("sLoadHistory error:",e); }
   }
 
-  // ===== Render from round history (main path) =====
-  // Columns: A=round B=drawSeq C=noReplace D=date E=event F=group G=leverage H=return% I=preAssets J=postAssets K=PnL
+  // ===== 從 01reborn/Round紀錄 渲染（主要路徑）=====
+  // 欄位：A=Round B=抽序 C=不放回 D=日期 E=Event F=Group G=槓桿 H=報酬% I=前資產 J=After K=P&L
   function sRenderRoundHistory(rows){
     const tbody=$s("sHistBody");if(!tbody)return;
-    if(!rows.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px;">No round history yet</td></tr>`;return;}
+    if(!rows.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px;">尚無Round紀錄</td></tr>`;return;}
     tbody.innerHTML=rows.slice().sort((a,b)=>Number(b[0]||0)-Number(a[0]||0)).map(r=>{
       const round=r[0], date=r[3], event=String(r[4]||"").slice(0,18);
       const ret=Number(r[7]||0), after=Number(r[9]||0), profit=Number(r[10]||0);
@@ -690,49 +728,49 @@ function hideStudentPortal(){}
         <td style="font-size:10px;color:#64748b;">${date||""}</td>
         <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;font-size:10.5px;">${event}</td>
         <td class="mono ${cls}">${retStr}</td>
-        <td class="mono">${after.toLocaleString("en-US")}</td>
-        <td class="mono ${cls}" style="font-weight:700;">${profit>=0?"+":""}${profit.toLocaleString("en-US")}</td>
+        <td class="mono">${after.toLocaleString("zh-TW")}</td>
+        <td class="mono ${cls}" style="font-weight:700;">${profit>=0?"+":""}${profit.toLocaleString("zh-TW")}</td>
       </tr>`;
     }).join("");
   }
 
-  // ===== From decisions (legacy fallback) =====
+  // ===== 從 decisions（舊格式 fallback）=====
   function sRenderHistory(rows){
     const tbody=$s("sHistBody");if(!tbody)return;
-    if(!rows.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px;">No round history yet</td></tr>`;return;}
+    if(!rows.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px;">尚無Round紀錄</td></tr>`;return;}
     tbody.innerHTML=rows.slice().reverse().map((r,i)=>`
       <tr>
         <td class="mono">${rows.length-i}</td>
         <td style="font-size:10px;color:#64748b;">${r[0]||""}</td>
-        <td style="font-size:10.5px;">Decision Record</td>
+        <td style="font-size:10.5px;">決策紀錄</td>
         <td class="mono">--</td>
         <td class="mono">--</td>
         <td class="mono">--</td>
       </tr>`).join("");
   }
 
-  // ===== Summary card (from round history) =====
+  // ===== 摘要卡片（從Round紀錄計算）=====
   function sRenderSummaryFromRounds(rows){
     if(!rows.length)return;
     // rows sorted by round asc
     const sorted = rows.slice().sort((a,b)=>Number(a[0]||0)-Number(b[0]||0));
     const last = sorted[sorted.length-1];
-    const cash = Number(last[9]||0);     // J=postAssets
-    const initCash = Number(sorted[0][8]||1000000); // I=preAssets (first round)
+    const cash = Number(last[9]||0);     // J=After
+    const initCash = Number(sorted[0][8]||1000000); // I=前資產（第一Round）
     const ret = initCash>0?((cash-initCash)/initCash*100).toFixed(2)+"%":"--";
-    if($s("sPCash"))$s("sPCash").textContent=cash.toLocaleString("en-US");
+    if($s("sPCash"))$s("sPCash").textContent=cash.toLocaleString("zh-TW");
     if($s("sPRet")){$s("sPRet").textContent=ret;$s("sPRet").className="sPVal "+(cash>=initCash?"ok":"bad");}
     if($s("sPRounds"))$s("sPRounds").textContent=sorted.length;
     if($s("sPRetCard"))$s("sPRetCard").className="sPCard "+(cash>=initCash?"ok":"bad");
   }
 
-  // ===== Legacy sRenderSummary =====
+  // ===== 舊版 sRenderSummary（decisions fallback）=====
   function sRenderSummary(rows){
     if(!rows.length)return;
     if($s("sPRounds"))$s("sPRounds").textContent=rows.length;
   }
 
-  // ===== Portfolio performance chart (Canvas) =====
+  // ===== 投資績效折線圖（Canvas，無依賴）=====
   function sRenderPerformanceChart(rows){
     const canvas=$s("sPerformanceChart");if(!canvas)return;
     const sorted=rows.slice().sort((a,b)=>Number(a[0]||0)-Number(b[0]||0));
@@ -825,11 +863,9 @@ function hideStudentPortal(){}
     }
   }
 
-  // filterStudentList not needed in standalone student page
-
-  // ===== Class Ranking Feature =====
+  // ===== 班級排功能 =====
   let sRankShowAll = true;
-  let sAllGroupsData = [];
+  let sAllGroupsData = []; // [{groupName, rounds:[], finalCash, initCash, totalReturn}]
 
   $s("sBtnShowAllGroups")?.addEventListener("click",()=>{
     sRankShowAll=true;
@@ -850,19 +886,22 @@ function hideStudentPortal(){}
     try{
       const res=await sgsFetch("get_decisions",{});
       if(res.ok||(res.status==="success")){
-        sProcessClassRankData(res.roundHistory||[]);
+        const roundHistory=res.roundHistory||[];
+        sProcessClassRankData(roundHistory);
       }
     }catch(e){console.warn("sLoadClassRank error:",e);}
   }
 
   function sProcessClassRankData(roundHistory){
-    if(!roundHistory.length)return;
+    if(!roundHistory.length){$s("sRankHint") && ($s("sRankHint").textContent="No class round records");return;}
+    // Group by groupName
     const groupMap={};
     for(const r of roundHistory){
       const gn=String(r[5]||"").trim();if(!gn)continue;
       if(!groupMap[gn])groupMap[gn]=[];
       groupMap[gn].push(r);
     }
+    // Build group data
     const groupArr=[];
     for(const [gn,rows] of Object.entries(groupMap)){
       const sorted=rows.slice().sort((a,b)=>Number(a[0]||0)-Number(b[0]||0));
@@ -874,17 +913,26 @@ function hideStudentPortal(){}
     }
     groupArr.sort((a,b)=>b.totalReturn-a.totalReturn);
     sAllGroupsData=groupArr;
+    // Update round label
     if(groupArr.length&&$s("sRankRoundLabel")){
       const maxR=Math.max(...groupArr.map(g=>g.maxRound));
-      $s("sRankRoundLabel").textContent=`(Through Round ${maxR}, ${groupArr.length} groups)`;
+      $s("sRankRoundLabel").textContent=`(up to Round ${maxR}, ${groupArr.length} group(s))`;
     }
     sRenderClassChart();
     sRenderRankTable();
   }
 
+  // Identify my group
+  function sMyGroupName(){
+    if(!sSession.groupKey)return "";
+    const parts=sSession.groupKey.split("_");
+    return sSession.groupKey; // full key like "1141甲班_第3組"
+  }
   function sIsMyGroup(gn){
-    if(!sSession.groupKey)return false;
-    return gn===sSession.groupKey||(sSession.groupKey.endsWith("_"+gn))||(gn===sSession.groupKey.split("_").pop());
+    const my=sMyGroupName();
+    return gn===my||gn===sSession.groupKey||
+           (sSession.groupKey&&sSession.groupKey.endsWith("_"+gn))||
+           gn===(sSession.groupKey.split("_").pop());
   }
 
   const sClassPalette=["#1d4ed8","#059669","#7c3aed","#ef4444","#f59e0b","#06b6d4","#db2777","#84cc16","#0f766e","#f97316","#64748b","#be185d"];
@@ -894,45 +942,66 @@ function hideStudentPortal(){}
     const emptyEl=$s("sClassChartEmpty");
     if(!canvas)return;
     const data=sRankShowAll?sAllGroupsData:sAllGroupsData.filter(g=>sIsMyGroup(g.groupName));
-    if(!data.length){canvas.style.display="none";if(emptyEl)emptyEl.style.display="block";return;}
-    canvas.style.display="block";if(emptyEl)emptyEl.style.display="none";
+    if(!data.length||data[0].rows.length<1){
+      canvas.style.display="none";
+      if(emptyEl)emptyEl.style.display="block";
+      return;
+    }
+    canvas.style.display="block";
+    if(emptyEl)emptyEl.style.display="none";
+
     const dpr=window.devicePixelRatio||1;
     const W=canvas.clientWidth||340,H=canvas.clientHeight||180;
     canvas.width=Math.floor(W*dpr);canvas.height=Math.floor(H*dpr);
     const ctx=canvas.getContext("2d");
-    ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,W,H);
+
+    // Build all rounds
     const allRounds=new Set();
     data.forEach(g=>g.rows.forEach(r=>allRounds.add(Number(r[0]||0))));
     const rounds=[0,...Array.from(allRounds)].sort((a,b)=>a-b);
-    const xMax=rounds[rounds.length-1]||1;
+    const xMin=0,xMax=rounds[rounds.length-1]||1;
+
+    // Compute returns per group
     const series=data.map((g,i)=>{
       const pts=[{r:0,ret:0}];
       for(const r of g.rows){const after=Number(r[9]||g.initCash);const ret=g.initCash>0?(after-g.initCash)/g.initCash*100:0;pts.push({r:Number(r[0]||0),ret});}
       return{groupName:g.groupName,pts,color:sClassPalette[i%sClassPalette.length],isMe:sIsMyGroup(g.groupName)};
     });
+
     const allRets=series.flatMap(s=>s.pts.map(p=>p.ret));
     const rMin=Math.min(0,...allRets),rMax=Math.max(0,...allRets);
     const rRange=Math.max(Math.abs(rMin),Math.abs(rMax))||1;
     const yMin=-rRange*1.2,yMax=rRange*1.2;
+
     const PAD={l:42,r:10,t:14,b:24};
     const plotW=W-PAD.l-PAD.r,plotH=H-PAD.t-PAD.b;
-    const xS=x=>x/xMax*plotW+PAD.l;
+    const xS=x=>(x-xMin)/(xMax-xMin||1)*plotW+PAD.l;
     const yS=y=>PAD.t+plotH-(y-yMin)/(yMax-yMin||1)*plotH;
+
+    // BG
     ctx.fillStyle="rgba(248,250,255,0.9)";ctx.fillRect(PAD.l,PAD.t,plotW,plotH);
+    // Zero line
     ctx.strokeStyle="rgba(15,20,26,0.15)";ctx.lineWidth=1;ctx.setLineDash([3,3]);
     ctx.beginPath();ctx.moveTo(PAD.l,yS(0));ctx.lineTo(PAD.l+plotW,yS(0));ctx.stroke();ctx.setLineDash([]);
+    // Y labels
     ctx.font="9px 'JetBrains Mono',monospace";ctx.textAlign="right";ctx.fillStyle="rgba(15,20,26,0.45)";
     for(let v=-rRange;v<=rRange+0.01;v+=rRange){ctx.fillText((v>=0?"+":"")+v.toFixed(0)+"%",PAD.l-3,yS(v)+3);}
-    ctx.textAlign="center";
-    for(const r of rounds.filter(r=>r>0)){ctx.fillStyle="rgba(15,20,26,0.45)";ctx.fillText("R"+r,xS(r),PAD.t+plotH+15);}
+    // X labels
+    ctx.textAlign="center";ctx.fillStyle="rgba(15,20,26,0.45)";
+    for(const r of rounds.filter(r=>r>0)){ctx.fillText("R"+r,xS(r),PAD.t+plotH+15);}
+
+    // Draw series: others first, then my group on top
     const sorted=[...series].sort((a,b)=>(a.isMe?1:-1)-(b.isMe?1:-1));
     for(const s of sorted){
       if(s.pts.length<2)continue;
-      const r=parseInt(s.color.slice(1,3),16),g=parseInt(s.color.slice(3,5),16),b=parseInt(s.color.slice(5,7),16);
-      ctx.strokeStyle=s.isMe?s.color:`rgba(${r},${g},${b},0.3)`;
+      ctx.strokeStyle=s.isMe?s.color:`rgba(${parseInt(s.color.slice(1,3),16)},${parseInt(s.color.slice(3,5),16)},${parseInt(s.color.slice(5,7),16)},0.35)`;
       ctx.lineWidth=s.isMe?2.5:1.2;ctx.setLineDash(s.isMe?[]:[4,3]);
-      ctx.beginPath();s.pts.forEach((p,i)=>{i===0?ctx.moveTo(xS(p.r),yS(p.ret)):ctx.lineTo(xS(p.r),yS(p.ret));});
+      ctx.beginPath();
+      s.pts.forEach((p,i)=>{i===0?ctx.moveTo(xS(p.r),yS(p.ret)):ctx.lineTo(xS(p.r),yS(p.ret));});
       ctx.stroke();ctx.setLineDash([]);
+      // Dot for my group
       if(s.isMe&&s.pts.length){const last=s.pts[s.pts.length-1];ctx.beginPath();ctx.arc(xS(last.r),yS(last.ret),4,0,Math.PI*2);ctx.fillStyle=s.color;ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=1.5;ctx.stroke();}
     }
   }
@@ -940,27 +1009,102 @@ function hideStudentPortal(){}
   function sRenderRankTable(){
     const tbody=$s("sRankBody");if(!tbody)return;
     const data=sRankShowAll?sAllGroupsData:sAllGroupsData.filter(g=>sIsMyGroup(g.groupName));
-    if(!data.length){tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;color:#64748b;padding:16px;">No class ranking data yet</td></tr>`;return;}
-    tbody.innerHTML=data.map((g)=>{
-      const rankNum=sAllGroupsData.indexOf(g)+1;
+    if(!data.length){tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;color:#64748b;padding:16px;">尚無班級排資料</td></tr>`;return;}
+    tbody.innerHTML=data.map((g,idx)=>{
+      const rankNum=sAllGroupsData.indexOf(g)+1; // real rank among all
       const isMe=sIsMyGroup(g.groupName);
       const badgeCls=rankNum<=3?`rank${rankNum}`:"";
       const retCls=g.totalReturn>=0?"ok":"bad";
       const retStr=(g.totalReturn>=0?"+":"")+(g.totalReturn*100).toFixed(2)+"%";
+      const cashStr=g.finalCash.toLocaleString("zh-TW");
       return`<tr class="${isMe?"sMyRow":""}">
         <td><span class="sRankBadge ${badgeCls}">${rankNum}</span></td>
         <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;font-size:11px;">${isMe?"🔵 ":""}${g.groupName.split("_").pop()||g.groupName}</td>
-        <td class="mono" style="font-size:11px;">${g.finalCash.toLocaleString("en-US")}</td>
+        <td class="mono" style="font-size:11px;">${cashStr}</td>
         <td class="mono ${retCls}" style="font-size:11px;font-weight:${isMe?"700":"400"};">${retStr}</td>
         <td class="mono" style="font-size:11px;">${g.roundCount}</td>
       </tr>`;
     }).join("");
   }
 
+  // Auto-load ranking when entering app
+  const _origEnterApp=sEnterApp;
+
+  // filterStudentList not needed in standalone student page
+
+  // ===== SPECIAL NOTIFICATION SYSTEM =====
+  const CAT_VIDEO_URL = "https://pub-0977cef7f12d4eea8b82e91b6b7e2124.r2.dev/CYCUstudent_CAT.mp4";
+  let _lastNotifTime = 0;
+
+  function showStudentSpecialNotif(type, title, body){
+    const layer = document.getElementById("sSpecialNotifLayer"); if(!layer) return;
+    const card = document.createElement("div");
+    const isCat = type === "cat_bonus";
+    card.className = "sSpecialCard " + (isCat ? "cat" : "gambling");
+    card.innerHTML = isCat
+      ? `<div class="sCatVideoWrap" style="position:relative;"><video src="${CAT_VIDEO_URL}" autoplay muted playsinline loop controlsList="nodownload nofullscreen noremoteplayback" oncontextmenu="return false" style="width:100%;border-radius:12px;pointer-events:none;user-select:none;" style="width:100%;border-radius:12px;"></video></div>
+         <div class="sSpecialTitle">${title}</div>
+         <div class="sSpecialBody">${body}</div>
+         <button class="sSpecialClose" onclick="this.closest('.sSpecialCard').remove()">🐾 Accept the luck!</button>`
+      : `<div style="font-size:52px;margin-bottom:10px;">🐕</div>
+         <div class="sSpecialTitle">${title}</div>
+         <div class="sSpecialBody">${body}</div>
+         <button class="sSpecialClose" onclick="this.closest('.sSpecialCard').remove()">😅 Got it</button>`;
+    layer.appendChild(card);
+    // Auto dismiss after 12s for cat, 8s for gambling
+    setTimeout(()=>{ if(card.parentElement) card.remove(); }, isCat ? 12000 : 8000);
+  }
+
+  // Poll GS for special notifications addressed to this group
+  let _sNotifPollInterval = null;
+  function startSpecialNotifPoll(){
+    if(_sNotifPollInterval) clearInterval(_sNotifPollInterval);
+    _sNotifPollInterval = setInterval(async()=>{
+      if(!sSession.groupKey) return;
+      try{
+        const res = await sgsFetch("get_special_notifs", { groupKey: sSession.groupKey, since: _lastNotifTime });
+        if(res.ok && Array.isArray(res.notifs) && res.notifs.length){
+          for(const n of res.notifs){
+            showStudentSpecialNotif(n.type, n.msgTitle, n.msgBody);
+            _lastNotifTime = Math.max(_lastNotifTime, new Date(n.time||0).getTime());
+          }
+        }
+      }catch(e){}
+    }, 8000); // poll every 8s
+  }
+
+  // Hook into sEnterApp to start poll
+  const _origEnterApp2 = typeof window.sEnterApp === "function" ? window.sEnterApp : null;
+  // Patch: after login, start polling
+  const _origLoginBtn = document.getElementById("sBtnLogin");
+
+  // Override sEnterApp if exists, otherwise hook after login
+  function patchStartNotifPoll(){
+    startSpecialNotifPoll();
+  }
+
+  // Observe when sAppArea becomes visible
+  const _appAreaObs = new MutationObserver(mutations=>{
+    for(const m of mutations){
+      if(m.type==="attributes" && m.attributeName==="style"){
+        const el = m.target;
+        if(el.id==="sAppArea" && el.style.display !== "none"){
+          patchStartNotifPoll();
+        }
+      }
+    }
+  });
+  const _appArea = document.getElementById("sAppArea");
+  if(_appArea) _appAreaObs.observe(_appArea, {attributes:true});
+
   // Init
-  window.sRefreshDropdowns();
-  sUpdateSliders();
-  if($s("sLevVal"))$s("sLevVal").textContent=(parseInt($s("sLevRange")?.value||10)/10).toFixed(1)+"×";
+  function doInit(){
+    try{ window.sRefreshDropdowns(); }catch(e){ console.error("sRefreshDropdowns error:",e); }
+    try{ sUpdateSliders(); }catch(e){}
+    try{ if($s("sLevVal"))$s("sLevVal").textContent=(parseInt($s("sLevRange")?.value||10)/10).toFixed(1)+"×"; }catch(e){}
+  }
+  if(document.readyState==="loading"){ document.addEventListener("DOMContentLoaded",doInit); }
+  else { doInit(); }
 })();
 </script>
 </body>
