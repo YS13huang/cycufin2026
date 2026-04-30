@@ -396,20 +396,36 @@ function hideStudentPortal(){}
           return;
         }
       }
-      // Not found locally → might be first login on this device, try GS get_decisions
+      // Not found locally → first login on this device, verify against GS shAccounts
       try{
         const res=await sgsFetch("get_decisions",{});
         if(res.ok&&res.rows){
-          // Check if this group exists in decisions sheet
-          const found = res.rows.find(r=>String(r[1]||"").trim()===groupKey||String(r[2]||"").trim()===groupKey);
-          if(found){
-            // Group exists — store locally and log in (password verified by hash match)
-            const groupName=found[1]||groupKey;
-            localStorage.setItem(`student_${groupKey}`,JSON.stringify({groupName,pwdHash,semClass:sc}));
-            sSession={groupKey,groupName,semClass:sc,pwdHash,roundLocked:false};
-            sEnterApp({stockPct:Number(found[3]||33),bondPct:Number(found[4]||33),cryptoPct:Number(found[5]||34),leverage:Number(found[6]||1),strategy:found[7]||""});
-            return;
+          // accounts 欄位在 I 欄（index 8）存的是 selfPassword（pwdHash前8碼）
+          // 在 get_decisions 的 rows（02decision）中 B=學期班級 C=組別 H=策略
+          // shAccounts 不在 rows 裡，但我們可以用 accounts 中的 selfPassword 驗證
+          // 優先從 rows 找到此組別的最新一筆，並用 selfPassword(index 8) 比對
+          const myRow=res.rows.filter(r=>{
+            const rGroup=String(r[2]||"").trim();
+            return rGroup===gn||rGroup===groupKey||rGroup.endsWith("_"+gn);
+          }).slice(-1)[0]; // 取最新一筆
+          
+          if(myRow){
+            const storedShortHash=String(myRow[8]||"").trim(); // I欄 = selfPassword (hash前8碼)
+            const shortHash=pwdHash.slice(0,8);
+            // 比對：若 selfPassword 有值就比對，若為空表示該組是教師建立的（允許任意密碼）
+            if(!storedShortHash||storedShortHash===shortHash){
+              const groupName=myRow[1]||groupKey;
+              const customName=myRow[8]||"";
+              // 存入本機快取確保下次不需要 GS 驗證
+              localStorage.setItem(`student_${groupKey}`,JSON.stringify({groupName:groupKey,pwdHash,semClass:sc,customName:""}));
+              sSession={groupKey,groupName:groupKey,semClass:sc,pwdHash,roundLocked:false};
+              sEnterApp({stockPct:Number(myRow[3]||33),bondPct:Number(myRow[4]||33),cryptoPct:Number(myRow[5]||34),leverage:Number(myRow[6]||1),strategy:myRow[7]||""});
+              return;
+            } else {
+              sSMsg("sLoginMsg","❌ 密碼錯誤，請重試","err"); return;
+            }
           }
+          // 找不到組別 → 未註冊
         }
       }catch(e){}
       sSMsg("sLoginMsg","❌ 帳號不存在或密碼錯誤。請先「新組別註冊」","err");
@@ -506,7 +522,22 @@ function hideStudentPortal(){}
     if($s("sSumBar2"))$s("sSumBar2").className="sSumBar2 "+(ok?"ok":"warn");
     if($s("sBtnSave"))$s("sBtnSave").disabled=(!ok||sSession.roundLocked);
   }
-  ["sStockRange","sBondRange","sCryptoRange"].forEach(id=>$s(id)?.addEventListener("input",sUpdateSliders));
+
+  // 當任一滑桿調整時，自動限制總和不超過100（最後一個動的滑桿被壓縮）
+  function sSliderInput(changedId){
+    const ids=["sStockRange","sBondRange","sCryptoRange"];
+    const vals=ids.map(id=>parseInt($s(id)?.value)||0);
+    const idx=ids.indexOf(changedId);
+    const others=ids.filter((_,i)=>i!==idx);
+    const otherSum=others.reduce((s,id)=>s+(parseInt($s(id)?.value)||0),0);
+    const max=100-otherSum;
+    if(vals[idx]>max){
+      if($s(changedId))$s(changedId).value=Math.max(0,max);
+    }
+    sUpdateSliders();
+  }
+  ["sStockRange","sBondRange","sCryptoRange"].forEach(id=>
+    $s(id)?.addEventListener("input",()=>sSliderInput(id)));
   $s("sLevRange")?.addEventListener("input",()=>{const v=parseInt($s("sLevRange").value)/10;if($s("sLevVal"))$s("sLevVal").textContent=v.toFixed(1)+"×";});
 
   function sSetLocked(locked){
@@ -667,7 +698,6 @@ function hideStudentPortal(){}
         if(serverRound !== null){ sUpdateRound(serverRound, serverLocked); sSetLocked(serverLocked); }
 
         // 從 roundHistory（01reborn/回合紀錄）讀取此組別的回合績效
-        // 欄位：A=回合 B=抽序 C=不放回 D=日期 E=事件名 F=組別 G=槓桿 H=報酬% I=前資產 J=後資產 K=損益
         const roundHistory = res.roundHistory||[];
         const gKeyParts = sSession.groupKey.split("_");
         const gGroupName = gKeyParts[gKeyParts.length-1];
@@ -693,6 +723,45 @@ function hideStudentPortal(){}
           if(myMax>=displayRound){ sSession.savedThisRound=true;
             if($s("sBtnSave"))$s("sBtnSave").textContent="💾 更新本回合決策（已儲存過）"; }
         }
+
+        // ① 建立 decisions-by-round 索引，供 hover tooltip 使用
+        // 02decision: A=時間 B=學期班級 C=組別 D=股票% E=債券% F=加密% G=槓桿 H=策略
+        const allDecRows=res.rows||[];
+        const myDecRows=allDecRows.filter(r=>{
+          const rGroup=String(r[2]||"").trim();
+          return rGroup===gGroupName||rGroup===fullName||rGroup===(gSemClass+"_"+gGroupName);
+        });
+        // Map round# → decision (use roundHistory round# matched by time proximity)
+        // Simpler: just build sorted decisions list and map to myRounds by index
+        const decByRound={};
+        myRounds.slice().sort((a,b)=>Number(a[0]||0)-Number(b[0]||0)).forEach((r,i)=>{
+          const rnd=Number(r[0]);
+          // Try to find a decision row that was submitted around this round
+          const dec=myDecRows[i]||myDecRows[myDecRows.length-1];
+          if(dec) decByRound[rnd]={
+            sk:Math.round(Number(dec[3]||0)),
+            bd:Math.round(Number(dec[4]||0)),
+            cr:Math.round(Number(dec[5]||0)),
+            lev:Number(dec[6]||1).toFixed(1),
+            strategy:dec[7]||""
+          };
+        });
+        sSession._decisionsByRound=decByRound;
+
+        // ② 同步後更新本機快取中的 pwdHash（確保重開瀏覽器後密碼不失效）
+        // accounts: shAccounts 不在 get_decisions 回傳，但 selfPassword(hash前8碼) 在 rows[8] (I欄)
+        // → 已登入成功，直接更新本機快取確保下次重開也能驗證
+        try{
+          const existing=JSON.parse(localStorage.getItem(`student_${fullName}`)||"{}");
+          if(sSession.pwdHash && existing.pwdHash!==sSession.pwdHash){
+            existing.pwdHash=sSession.pwdHash;
+            existing.groupName=sSession.groupName||fullName;
+            existing.semClass=sSession.semClass;
+            existing.customName=sSession.customName||"";
+            localStorage.setItem(`student_${fullName}`,JSON.stringify(existing));
+          }
+        }catch(e){}
+
         if(myRounds.length){
           sRenderRoundHistory(myRounds);
           sRenderSummaryFromRounds(myRounds);
@@ -700,12 +769,7 @@ function hideStudentPortal(){}
           if($s("sChartEmpty"))$s("sChartEmpty").style.display="none";
         }else{
           // fallback：從 decisions 讀取（可能教師端尚未執行回合）
-          const allRows=res.rows||[];
-          const myRows=allRows.filter(r=>{
-            const rSem=String(r[1]||"").trim(), rGroup=String(r[2]||"").trim();
-            return rGroup===gGroupName ||(rSem===gSemClass&&rGroup===gGroupName)||rGroup===fullName;
-          });
-          if(myRows.length){ sRenderHistory(myRows); }
+          if(myDecRows.length){ sRenderHistory(myDecRows); }
         }
         // 也載入班級排名
         sProcessClassRankData(roundHistory);
@@ -719,19 +783,54 @@ function hideStudentPortal(){}
     const tbody=$s("sHistBody");if(!tbody)return;
     if(!rows.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px;">尚無回合紀錄</td></tr>`;return;}
     tbody.innerHTML=rows.slice().sort((a,b)=>Number(b[0]||0)-Number(a[0]||0)).map(r=>{
-      const round=r[0], date=r[3], event=String(r[4]||"").slice(0,18);
+      const round=r[0], date=String(r[3]||"").slice(0,10), event=String(r[4]||"").slice(0,18);
       const ret=Number(r[7]||0), after=Number(r[9]||0), profit=Number(r[10]||0);
+      const lev=Number(r[6]||1);
       const cls=profit>=0?"ok":"bad";
       const retStr=Number.isFinite(ret)?(ret*100>=0?"+":"")+(ret*100).toFixed(2)+"%":"--";
       return`<tr>
         <td class="mono" style="font-weight:700;">R${round}</td>
         <td style="font-size:10px;color:#64748b;">${date||""}</td>
-        <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;font-size:10.5px;">${event}</td>
+        <td class="sHistEventCell" data-round="${round}" data-lev="${lev.toFixed(2)}" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;font-size:10.5px;cursor:help;">🖱 ${event}</td>
         <td class="mono ${cls}">${retStr}</td>
         <td class="mono">${after.toLocaleString("zh-TW")}</td>
         <td class="mono ${cls}" style="font-weight:700;">${profit>=0?"+":""}${profit.toLocaleString("zh-TW")}</td>
       </tr>`;
     }).join("");
+
+    // Wire hover tooltip
+    tbody.querySelectorAll(".sHistEventCell").forEach(td=>{
+      td.addEventListener("mouseenter",()=>{
+        let tip=document.getElementById("sAllocTip");
+        if(!tip){
+          tip=document.createElement("div");
+          tip.id="sAllocTip";
+          tip.style.cssText="position:fixed;z-index:9999;background:#1e293b;color:#fff;border-radius:12px;padding:12px 16px;font-size:12px;line-height:2;box-shadow:0 8px 32px rgba(0,0,0,0.55);pointer-events:none;border:1px solid rgba(148,163,184,0.2);min-width:170px;";
+          document.body.appendChild(tip);
+        }
+        const rnd=td.dataset.round;
+        const lev=td.dataset.lev;
+        const dec=(sSession._decisionsByRound||{})[rnd];
+        let html=`<div style="font-weight:800;font-size:13px;margin-bottom:4px;color:#93c5fd;">第 ${rnd} 回合配置</div>`;
+        if(dec){
+          html+=`<div>📈 股票 <strong style="float:right;margin-left:16px;">${dec.sk}%</strong></div>`;
+          html+=`<div>📋 債券 <strong style="float:right;margin-left:16px;">${dec.bd}%</strong></div>`;
+          html+=`<div>₿ 加密貨幣 <strong style="float:right;margin-left:16px;">${dec.cr}%</strong></div>`;
+          html+=`<div style="margin-top:6px;border-top:1px solid rgba(255,255,255,0.15);padding-top:6px;">⚡ 槓桿 <strong style="float:right;margin-left:16px;">${dec.lev}×</strong></div>`;
+        } else {
+          html+=`<div>⚡ 槓桿 <strong style="float:right;margin-left:16px;">${lev}×</strong></div>`;
+          html+=`<div style="font-size:10.5px;color:#94a3b8;margin-top:4px;">配置資料需從 GS 同步後才可顯示</div>`;
+        }
+        tip.innerHTML=html;
+        tip.style.display="block";
+        const rect=td.getBoundingClientRect();
+        let left=rect.right+10, top=rect.top-10;
+        tip.style.left=left+"px"; tip.style.top=top+"px";
+        if(left+tip.offsetWidth>window.innerWidth-8) tip.style.left=(rect.left-tip.offsetWidth-10)+"px";
+        if(top+tip.offsetHeight>window.innerHeight-8) tip.style.top=(window.innerHeight-tip.offsetHeight-8)+"px";
+      });
+      td.addEventListener("mouseleave",()=>{ const t=document.getElementById("sAllocTip"); if(t)t.style.display="none"; });
+    });
   }
 
   // ===== 從 decisions（舊格式 fallback）=====
