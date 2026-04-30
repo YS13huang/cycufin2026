@@ -724,27 +724,38 @@ function hideStudentPortal(){}
             if($s("sBtnSave"))$s("sBtnSave").textContent="💾 更新本回合決策（已儲存過）"; }
         }
 
-        // ① 從 roundHistory 新欄位直接建立 decisions-by-round 索引
-        // 新欄位：L(11)=特殊 M(12)=學生理由 N(13)=股票% O(14)=債券% P(15)=加密%
-        // 比舊方法（cross-reference decisions 表）更準確，避免重複填寫造成的混亂
+        // ① 從 roundHistory 新欄位（L/M/N/O/P）建立 decisions-by-round 索引
+        // 若新欄位為空（舊資料），fallback 到 decisions 表 cross-reference
+        const allDecRows2=res.rows||[];
+        const myDecRows2=allDecRows2.filter(r=>{
+          const rGroup=String(r[2]||"").trim();
+          return rGroup===gGroupName||rGroup===fullName||rGroup===(gSemClass+"_"+gGroupName);
+        }).sort((a,b)=>String(a[0]||"").localeCompare(String(b[0]||"")));
         const decByRound={};
-        myRounds.forEach(r=>{
+        myRounds.slice().sort((a,b)=>Number(a[0]||0)-Number(b[0]||0)).forEach((r,idx)=>{
           const rnd=Number(r[0]);
-          const skPct=Number(r[13]||0), bdPct=Number(r[14]||0), crPct=Number(r[15]||0);
           const lev=Number(r[6]||1);
           const specialTag=String(r[11]||"").trim();
           const studentReason=String(r[12]||"").trim();
-          // 若新欄位有資料就用新欄位；若皆為0（舊資料）則標記為「需同步」
+          // 優先用 roundHistory 新欄位（更準確）
+          const skPct=Number(r[13]||0), bdPct=Number(r[14]||0), crPct=Number(r[15]||0);
           const hasNewCols=(skPct+bdPct+crPct)>0;
-          decByRound[rnd]={
-            sk:hasNewCols?Math.round(skPct):"--",
-            bd:hasNewCols?Math.round(bdPct):"--",
-            cr:hasNewCols?Math.round(crPct):"--",
-            lev:lev.toFixed(1),
-            specialTag,
-            studentReason,
-            hasData:hasNewCols
-          };
+          if(hasNewCols){
+            decByRound[rnd]={sk:Math.round(skPct),bd:Math.round(bdPct),cr:Math.round(crPct),
+              lev:lev.toFixed(1),specialTag,studentReason,hasData:true};
+          } else {
+            // Fallback: 從 decisions 表取第 idx 筆
+            const dec=myDecRows2[idx]||myDecRows2[myDecRows2.length-1];
+            if(dec){
+              decByRound[rnd]={
+                sk:Math.round(Number(dec[3]||0)), bd:Math.round(Number(dec[4]||0)),
+                cr:Math.round(Number(dec[5]||0)), lev:Number(dec[6]||lev).toFixed(1),
+                specialTag, studentReason:dec[7]||studentReason, hasData:true
+              };
+            } else {
+              decByRound[rnd]={sk:"--",bd:"--",cr:"--",lev:lev.toFixed(1),specialTag,studentReason,hasData:false};
+            }
+          }
         });
         sSession._decisionsByRound=decByRound;
 
@@ -805,7 +816,7 @@ function hideStudentPortal(){}
         if(!tip){
           tip=document.createElement("div");
           tip.id="sAllocTip";
-          tip.style.cssText="position:fixed;z-index:9999;background:#1e293b;color:#fff;border-radius:12px;padding:12px 16px;font-size:12px;line-height:2;box-shadow:0 8px 32px rgba(0,0,0,0.55);pointer-events:none;border:1px solid rgba(148,163,184,0.2);min-width:180px;max-width:260px;";
+          tip.style.cssText="position:fixed;z-index:9999;background:#1e293b;color:#fff;border-radius:12px;padding:12px 16px;font-size:12px;line-height:2;box-shadow:0 8px 32px rgba(0,0,0,0.55);pointer-events:none;border:1px solid rgba(148,163,184,0.2);min-width:160px;max-width:min(260px,85vw);word-break:break-word;";
           document.body.appendChild(tip);
         }
         const rnd=td.dataset.round;
@@ -838,11 +849,19 @@ function hideStudentPortal(){}
         }
         tip.innerHTML=html;
         tip.style.display="block";
-        const rect=td.getBoundingClientRect();
-        let left=rect.right+10, top=rect.top-10;
-        tip.style.left=left+"px"; tip.style.top=top+"px";
-        if(left+tip.offsetWidth>window.innerWidth-8) tip.style.left=(rect.left-tip.offsetWidth-10)+"px";
-        if(top+tip.offsetHeight>window.innerHeight-8) tip.style.top=(window.innerHeight-tip.offsetHeight-8)+"px";
+        // Mobile-safe positioning: if narrow viewport, center horizontally
+        const isMobile=window.innerWidth<500;
+        if(isMobile){
+          tip.style.left=Math.max(4,(window.innerWidth-tip.offsetWidth)/2)+"px";
+          tip.style.top=Math.min(window.innerHeight-tip.offsetHeight-8, window.scrollY+60)+"px";
+        } else {
+          const rect=td.getBoundingClientRect();
+          let left=rect.right+10, top=rect.top-10;
+          if(left+tip.offsetWidth>window.innerWidth-8) left=rect.left-tip.offsetWidth-10;
+          if(top+tip.offsetHeight>window.innerHeight-8) top=window.innerHeight-tip.offsetHeight-8;
+          if(left<4) left=4;
+          tip.style.left=left+"px"; tip.style.top=top+"px";
+        }
       });
       td.addEventListener("mouseleave",()=>{ const t=document.getElementById("sAllocTip"); if(t)t.style.display="none"; });
     });
@@ -1126,7 +1145,9 @@ function hideStudentPortal(){}
     if(myGroupData) myGroupData.rows.forEach(r=>{ myRowByRound[Number(r[0]||0)]=r; });
     const myDecByRound=sSession._decisionsByRound||{};
 
-    const handleChartHover=(e)=>{
+    const handleChartHover=(e,d)=>{
+      const {myRowByRound,myDecByRound,rounds,xS,series,PAD,plotH}=d||{};
+      if(!rounds)return;
       const rect=canvas.getBoundingClientRect();
       const mx=e.clientX-rect.left;
       // Find nearest round
@@ -1141,7 +1162,7 @@ function hideStudentPortal(){}
       if(!tip){
         tip=document.createElement("div");
         tip.id="sChartHoverTip";
-        tip.style.cssText="position:fixed;z-index:9999;background:#1e293b;color:#fff;border-radius:12px;padding:10px 14px;font-size:11.5px;line-height:1.85;box-shadow:0 8px 32px rgba(0,0,0,0.55);pointer-events:none;border:1px solid rgba(148,163,184,0.2);min-width:170px;max-width:240px;";
+        tip.style.cssText="position:fixed;z-index:9999;background:#1e293b;color:#fff;border-radius:12px;padding:10px 14px;font-size:11.5px;line-height:1.85;box-shadow:0 8px 32px rgba(0,0,0,0.55);pointer-events:none;border:1px solid rgba(148,163,184,0.2);min-width:150px;max-width:min(240px,85vw);word-break:break-word;";
         document.body.appendChild(tip);
       }
 
@@ -1183,54 +1204,42 @@ function hideStudentPortal(){}
       tip.style.display="block";
       // Position tooltip
       const cx=e.clientX, cy=e.clientY;
-      let tx=cx+14, ty=cy-tip.offsetHeight/2;
-      if(tx+tip.offsetWidth>window.innerWidth-8) tx=cx-tip.offsetWidth-14;
-      if(ty<8) ty=8;
-      if(ty+tip.offsetHeight>window.innerHeight-8) ty=window.innerHeight-tip.offsetHeight-8;
+      const tipW=Math.min(tip.offsetWidth,Math.floor(window.innerWidth*0.85));
+      tip.style.maxWidth=tipW+"px";
+      const isMob=window.innerWidth<500;
+      let tx,ty;
+      if(isMob){
+        tx=Math.max(4,(window.innerWidth-tipW)/2);
+        ty=8;
+      } else {
+        tx=cx+14; ty=cy-tip.offsetHeight/2;
+        if(tx+tipW>window.innerWidth-8) tx=cx-tipW-14;
+        if(tx<8) tx=8;
+        if(ty<8) ty=8;
+        if(ty+tip.offsetHeight>window.innerHeight-8) ty=window.innerHeight-tip.offsetHeight-8;
+      }
       tip.style.left=tx+"px"; tip.style.top=ty+"px";
 
       // Draw vertical crosshair on canvas
-      ctx.clearRect(0,0,W,H);
-      // Redraw bg+grid+series (lightweight)
-      ctx.fillStyle="rgba(248,250,255,0.9)";ctx.fillRect(PAD.l,PAD.t,plotW,plotH);
-      ctx.strokeStyle="rgba(15,20,26,0.15)";ctx.lineWidth=1;ctx.setLineDash([3,3]);
-      ctx.beginPath();ctx.moveTo(PAD.l,yS(0));ctx.lineTo(PAD.l+plotW,yS(0));ctx.stroke();ctx.setLineDash([]);
-      ctx.font="9px 'JetBrains Mono',monospace";ctx.textAlign="right";ctx.fillStyle="rgba(15,20,26,0.45)";
-      for(let v=-rRange;v<=rRange+0.01;v+=rRange){ctx.fillText((v>=0?"+":"")+v.toFixed(0)+"%",PAD.l-3,yS(v)+3);}
-      ctx.textAlign="center";
-      for(const r of rounds.filter(r=>r>0)){ctx.fillStyle=r===nearestR?"rgba(124,58,237,0.7)":"rgba(15,20,26,0.45)";ctx.fillText("R"+r,xS(r),PAD.t+plotH+15);}
-      // Crosshair
-      const cx2=xS(nearestR);
-      ctx.strokeStyle="rgba(124,58,237,0.4)";ctx.lineWidth=1;ctx.setLineDash([4,3]);
-      ctx.beginPath();ctx.moveTo(cx2,PAD.t);ctx.lineTo(cx2,PAD.t+plotH);ctx.stroke();ctx.setLineDash([]);
-      // Redraw series
-      for(const s of sorted){
-        if(s.pts.length<2)continue;
-        ctx.strokeStyle=s.isMe?s.color:`rgba(${parseInt(s.color.slice(1,3),16)},${parseInt(s.color.slice(3,5),16)},${parseInt(s.color.slice(5,7),16)},0.35)`;
-        ctx.lineWidth=s.isMe?2.5:1.2;ctx.setLineDash(s.isMe?[]:[4,3]);
-        ctx.beginPath();s.pts.forEach((p,i)=>{i===0?ctx.moveTo(xS(p.r),yS(p.ret)):ctx.lineTo(xS(p.r),yS(p.ret));});
-        ctx.stroke();ctx.setLineDash([]);
-        if(s.isMe){
-          const last=s.pts[s.pts.length-1];
-          ctx.beginPath();ctx.arc(xS(last.r),yS(last.ret),4,0,Math.PI*2);ctx.fillStyle=s.color;ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=1.5;ctx.stroke();
-          // Highlight dot at hovered round
-          const hp=s.pts.find(p=>p.r===nearestR);
-          if(hp){ctx.beginPath();ctx.arc(xS(hp.r),yS(hp.ret),6,0,Math.PI*2);ctx.fillStyle=s.color;ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke();}
-        }
-      }
+      // No canvas redraw on hover (stable chart, tooltip only)
     };
 
-    const hideTip=()=>{
-      const t=document.getElementById("sChartHoverTip");if(t)t.style.display="none";
-      // Redraw clean
-      sRenderClassChart();
-    };
+    const hideTip=()=>{const t=document.getElementById("sChartHoverTip");if(t)t.style.display="none";};
 
-    // Remove old listeners and add new
-    const newCanvas=canvas.cloneNode(true);
-    canvas.parentNode.replaceChild(newCanvas,canvas);
-    newCanvas.addEventListener("mousemove",handleChartHover);
-    newCanvas.addEventListener("mouseleave",()=>{const t=document.getElementById("sChartHoverTip");if(t)t.style.display="none";});
+    // Store hover data on canvas for listener to use
+    canvas._hoverData={myRowByRound,myDecByRound,rounds,xS,series,PAD,plotH,sorted};
+
+    // Add mousemove tooltip (use data attribute to prevent duplicate listeners)
+    if(!canvas.dataset.hoverWired){
+      canvas.dataset.hoverWired="1";
+      canvas.addEventListener("mousemove",(e)=>{
+        // Use fresh data stored on canvas each render
+        const d=canvas._hoverData;
+        if(!d)return;
+        handleChartHover(e,d);
+      });
+      canvas.addEventListener("mouseleave",()=>{const t=document.getElementById("sChartHoverTip");if(t)t.style.display="none";});
+    }
   }
 
   function sRenderRankTable(){
@@ -1263,23 +1272,46 @@ function hideStudentPortal(){}
   const CAT_VIDEO_URL = "https://pub-0977cef7f12d4eea8b82e91b6b7e2124.r2.dev/CYCUstudent_CAT.mp4";
   let _lastNotifTime = 0;
 
+  // CSS for new card types
+  (function(){
+    const st=document.createElement('style');
+    st.textContent=`.sSpecialCard.fee{background:linear-gradient(135deg,#064e3b,#059669);border:2px solid rgba(110,231,183,0.5);}`;
+    document.head.appendChild(st);
+  })();
+
   function showStudentSpecialNotif(type, title, body){
     const layer = document.getElementById("sSpecialNotifLayer"); if(!layer) return;
     const card = document.createElement("div");
-    const isCat = type === "cat_bonus";
-    card.className = "sSpecialCard " + (isCat ? "cat" : "gambling");
-    card.innerHTML = isCat
-      ? `<div class="sCatVideoWrap" style="position:relative;"><video src="${CAT_VIDEO_URL}" autoplay muted playsinline loop controlsList="nodownload nofullscreen noremoteplayback" oncontextmenu="return false" style="width:100%;border-radius:12px;pointer-events:none;user-select:none;" style="width:100%;border-radius:12px;"></video></div>
+    const isCat    = type === "cat_bonus";
+    const isSuperCat = type === "supercat" || type === "supercat_announce" || type === "cat_bonus" && title.includes("🐾");
+    const isFee    = type === "levfee" || type === "fee" || type === "invest_fee" || title.includes("💸") || title.includes("繳費");
+    const isGamb   = !isCat && !isSuperCat && !isFee && !title.includes("🐾");
+    if(isCat||isSuperCat) card.className="sSpecialCard cat";
+    else if(isFee)         card.className="sSpecialCard fee";
+    else                   card.className="sSpecialCard gambling";
+
+    // 🐾 最愛小貓咪 uses cat video; 🐱 貓咪招財 uses cat video too
+    const showCatVideo = isCat || isSuperCat;
+    if(showCatVideo){
+      card.innerHTML=`<div class="sCatVideoWrap" style="position:relative;"><video src="${CAT_VIDEO_URL}" autoplay muted playsinline loop controlsList="nodownload nofullscreen noremoteplayback" oncontextmenu="return false" style="width:100%;border-radius:12px;pointer-events:none;user-select:none;"></video>
+        <button onclick="(function(btn){var v=btn.closest('.sCatVideoWrap').querySelector('video');v.muted=!v.muted;btn.textContent=v.muted?'🔇 點擊開聲音':'🔊 聲音已開啟';})(this)" style="position:absolute;bottom:8px;right:8px;padding:4px 10px;border-radius:8px;border:none;background:rgba(0,0,0,0.55);color:#fff;font-size:11px;cursor:pointer;font-family:inherit;pointer-events:auto;">🔇 點擊開聲音</button>
+        </div>
          <div class="sSpecialTitle">${title}</div>
          <div class="sSpecialBody">${body}</div>
-         <button class="sSpecialClose" onclick="this.closest('.sSpecialCard').remove()">🐾 收下好運！</button>`
-      : `<div style="font-size:52px;margin-bottom:10px;">🐕</div>
+         <button class="sSpecialClose" onclick="this.closest('.sSpecialCard').remove()">🐾 收下好運！</button>`;
+    } else if(isFee){
+      card.innerHTML=`<div style="font-size:52px;margin-bottom:10px;">💸</div>
+         <div class="sSpecialTitle">${title}</div>
+         <div class="sSpecialBody">${body}</div>
+         <button class="sSpecialClose" onclick="this.closest('.sSpecialCard').remove()">💰 收到！</button>`;
+    } else {
+      card.innerHTML=`<div style="font-size:52px;margin-bottom:10px;">🐕</div>
          <div class="sSpecialTitle">${title}</div>
          <div class="sSpecialBody">${body}</div>
          <button class="sSpecialClose" onclick="this.closest('.sSpecialCard').remove()">😅 知道了</button>`;
+    }
     layer.appendChild(card);
-    // Auto dismiss after 12s for cat, 8s for gambling
-    setTimeout(()=>{ if(card.parentElement) card.remove(); }, isCat ? 12000 : 8000);
+    setTimeout(()=>{ if(card.parentElement) card.remove(); }, showCatVideo?12000:8000);
   }
 
   // Poll GS for special notifications addressed to this group
