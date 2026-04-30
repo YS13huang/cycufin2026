@@ -212,7 +212,7 @@
           </div>
         </div>
 
-        <div class="sRoundBadge2 open" id="sRoundBadge">🟢 第 <span id="sRoundNum">--</span> 回合 · 開放中</div>
+        <div class="sRoundBadge2 open" id="sRoundBadge">🟢 本班第 <span id="sRoundNum">--</span> 回合 · 開放中</div>
 
         <div class="sLockBar" id="sLockBar">
           <div style="font-size:24px;flex-shrink:0;">🔒</div>
@@ -516,9 +516,10 @@ function hideStudentPortal(){}
 
   function sUpdateRound(round,locked){
     if($s("sRoundNum"))$s("sRoundNum").textContent=round||"--";
+    sSession.round=round; sSession.roundLocked=!!locked;
     const badge=$s("sRoundBadge");if(!badge)return;
     badge.className="sRoundBadge2 "+(locked?"locked":"open");
-    badge.innerHTML=locked?`🔴 第 <span id="sRoundNum">${round}</span> 回合 · 鎖定中`:`🟢 第 <span id="sRoundNum">${round}</span> 回合 · 開放中`;
+    badge.innerHTML=locked?`🔴 本班第 <span id="sRoundNum">${round}</span> 回合 · 鎖定中`:`🟢 本班第 <span id="sRoundNum">${round}</span> 回合 · 開放中`;
   }
 
   $s("sBtnLogout")?.addEventListener("click",()=>{
@@ -736,6 +737,7 @@ function hideStudentPortal(){}
           if(nums.length) displayRound=Math.max(...nums);
         }
         if(displayRound>0) sUpdateRound(displayRound, serverLocked);
+        // 回合 badge 顯示全域回合（老師的）；參與回合 = 此組實際資料筆數
         if(myRounds.length>0 && displayRound>0){
           const myMax=Math.max(...myRounds.map(r=>Number(r[0]||0)).filter(n=>n>0));
           if(myMax>=displayRound){ sSession.savedThisRound=true;
@@ -750,29 +752,34 @@ function hideStudentPortal(){}
           return rGroup===gGroupName||rGroup===fullName||rGroup===(gSemClass+"_"+gGroupName);
         }).sort((a,b)=>String(a[0]||"").localeCompare(String(b[0]||"")));
         const decByRound={};
-        myRounds.slice().sort((a,b)=>Number(a[0]||0)-Number(b[0]||0)).forEach((r,idx)=>{
+        // 取 myDecRows2 中此組按時間排序的決策列表（過濾重複，只取每回合最後一筆）
+        // myDecRows2 已按時間排序，直接用 idx 對應回合順序
+        const sortedRounds=myRounds.slice().sort((a,b)=>Number(a[0]||0)-Number(b[0]||0));
+        sortedRounds.forEach((r,idx)=>{
           const rnd=Number(r[0]);
           const lev=Number(r[6]||1);
           const specialTag=String(r[11]||"").trim();
           const studentReason=String(r[12]||"").trim();
-          // 優先用 roundHistory 新欄位（更準確）
+          // ① 優先用 roundHistory 新欄位 N/O/P（教師執行後寫入，最準確）
           const skPct=Number(r[13]||0), bdPct=Number(r[14]||0), crPct=Number(r[15]||0);
           const hasNewCols=(skPct+bdPct+crPct)>0;
           if(hasNewCols){
             decByRound[rnd]={sk:Math.round(skPct),bd:Math.round(bdPct),cr:Math.round(crPct),
               lev:lev.toFixed(1),specialTag,studentReason,hasData:true};
+            return;
+          }
+          // ② Fallback: 從 decisions 表取對應回合的決策
+          // 用 idx 對應：第1回合 → myDecRows2[0]，第2回合 → myDecRows2[1]...
+          const dec=myDecRows2[idx]||myDecRows2[myDecRows2.length-1];
+          if(dec && (Number(dec[3]||0)+Number(dec[4]||0)+Number(dec[5]||0))>0){
+            decByRound[rnd]={
+              sk:Math.round(Number(dec[3]||0)), bd:Math.round(Number(dec[4]||0)),
+              cr:Math.round(Number(dec[5]||0)), lev:Number(dec[6]||lev).toFixed(1),
+              specialTag, studentReason:dec[7]||studentReason, hasData:true
+            };
           } else {
-            // Fallback: 從 decisions 表取第 idx 筆
-            const dec=myDecRows2[idx]||myDecRows2[myDecRows2.length-1];
-            if(dec){
-              decByRound[rnd]={
-                sk:Math.round(Number(dec[3]||0)), bd:Math.round(Number(dec[4]||0)),
-                cr:Math.round(Number(dec[5]||0)), lev:Number(dec[6]||lev).toFixed(1),
-                specialTag, studentReason:dec[7]||studentReason, hasData:true
-              };
-            } else {
-              decByRound[rnd]={sk:"--",bd:"--",cr:"--",lev:lev.toFixed(1),specialTag,studentReason,hasData:false};
-            }
+            // ③ 最終 fallback: 只有槓桿，標記需同步
+            decByRound[rnd]={sk:0,bd:0,cr:0,lev:lev.toFixed(1),specialTag,studentReason,hasData:false};
           }
         });
         sSession._decisionsByRound=decByRound;
@@ -903,6 +910,7 @@ function hideStudentPortal(){}
   // ===== 摘要卡片（從回合紀錄計算）=====
   function sRenderSummaryFromRounds(rows){
     if(!rows.length)return;
+    // "參與回合" = 此組的實際回合紀錄筆數（不是全域 state.round）
     // rows sorted by round asc
     const sorted = rows.slice().sort((a,b)=>Number(a[0]||0)-Number(b[0]||0));
     const last = sorted[sorted.length-1];
