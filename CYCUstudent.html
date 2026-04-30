@@ -234,7 +234,10 @@
             <canvas id="sPerformanceChart" style="width:100%;height:160px;display:none;"></canvas>
             <div id="sChartEmpty" style="text-align:center;color:#94a3b8;font-size:12px;padding:40px 0;">執行回合後顯示走勢圖</div>
           </div>
-          <div style="font-size:11px;color:#64748b;margin-bottom:7px;font-weight:600;">📋 我的回合歷程（最新在上）</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
+            <div style="font-size:11px;color:#64748b;font-weight:600;">📋 我的回合歷程（最新在上）</div>
+            <button id="sBtnSyncAlloc" style="font-size:10px;padding:3px 9px;border-radius:8px;border:1px solid rgba(37,99,235,0.4);background:rgba(37,99,235,0.07);color:#2563eb;cursor:pointer;font-weight:600;" title="從資料庫同步每回合的配置資料">🔄 同步配置</button>
+          </div>
           <div style="overflow:auto;max-height:200px;border-radius:10px;border:1px solid #e2e8f0;">
             <table class="sTable2">
               <thead><tr><th>回合</th><th>日期</th><th>事件</th><th>報酬%</th><th>資產</th><th>損益</th></tr></thead>
@@ -775,7 +778,9 @@ function hideStudentPortal(){}
           const specialTag=String(r[13]||"").trim();
           // ① 優先用 roundHistory 新欄位 N/O/P（教師執行後寫入，最準確）
           const skPct=Number(r[14]||0), bdPct=Number(r[15]||0), crPct=Number(r[16]||0);
-          const hasNewCols=(skPct+bdPct+crPct)>0;
+          // hasNewCols: GAS 有寫入 N/O/P 欄（不只看總和，因為合法組合可能有欄位為0）
+          // 用總和>0 OR 行長度夠長（代表GAS有傳這些欄位）來判斷
+          const hasNewCols=(skPct+bdPct+crPct)>0 || (r.length>16 && (skPct+bdPct+crPct)===0 && String(r[14]||'')!=='');
           if(hasNewCols){
             decByRound[rnd]={sk:Math.round(skPct),bd:Math.round(bdPct),cr:Math.round(crPct),
               lev:lev.toFixed(1),specialTag,studentReason,hasData:true};
@@ -784,11 +789,12 @@ function hideStudentPortal(){}
           // ② Fallback: 從 decisions 表取對應回合的決策
           // 用 idx 對應：第1回合 → myDecRows2[0]，第2回合 → myDecRows2[1]...
           const dec=myDecRows2[idx]||myDecRows2[myDecRows2.length-1];
-          if(dec && (Number(dec[3]||0)+Number(dec[4]||0)+Number(dec[5]||0))>0){
+          // Fallback：只要 dec 存在就使用（即使某商品比例為0也是合法配置）
+          if(dec && dec[3]!==undefined){
             decByRound[rnd]={
               sk:Math.round(Number(dec[3]||0)), bd:Math.round(Number(dec[4]||0)),
               cr:Math.round(Number(dec[5]||0)), lev:Number(dec[6]||lev).toFixed(1),
-              specialTag, studentReason:dec[7]||studentReason, hasData:true
+              specialTag:specialTag||String(dec[8]||''), studentReason:dec[7]||studentReason, hasData:true
             };
           } else {
             // ③ 最終 fallback: 只有槓桿，標記需同步
@@ -1051,7 +1057,18 @@ function hideStudentPortal(){}
     $s("sBtnShowAllGroups")?.classList.remove("active");
     sRenderClassChart();sRenderRankTable();
   });
-  $s("sBtnRefreshRank")?.addEventListener("click",sLoadClassRank);
+  $s("sBtnSyncAlloc")?.addEventListener("click",async()=>{
+    if(!sSession.groupKey){sToast("⚠️ 請先登入");return;}
+    const btn=$s("sBtnSyncAlloc");
+    if(btn){btn.textContent="⏳ 同步中…";btn.disabled=true;}
+    try{
+      // 清除舊的 decByRound 快取，重新從 GS 完整載入
+      sSession._decisionsByRound={};
+      await sLoadHistory();
+      sToast("✅ 配置資料已從 GS 同步");
+    }catch(e){sToast("⚠️ 同步失敗");}
+    finally{if(btn){btn.textContent="🔄 同步配置";btn.disabled=false;}}
+  });
 
   async function sLoadClassRank(){
     if(!sSession.groupKey)return;
