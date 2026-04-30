@@ -626,10 +626,13 @@ function hideStudentPortal(){}
         const fullName3  = sSession.groupKey;
         const gGroupName3= gKeyParts3[gKeyParts3.length-1];
         const gSemClass3 = gKeyParts3.slice(0,-1).join("_");
-        const myRounds3 = roundHistory2.filter(r=>{
+        const myRounds3Raw = roundHistory2.filter(r=>{
           const rGroup=String(r[5]||"").trim();
           return rGroup===fullName3||rGroup===gGroupName3||rGroup===(gSemClass3+"_"+gGroupName3);
         });
+        const roundMap3={};
+        myRounds3Raw.forEach(r=>{const rnd=Number(r[0]||0);roundMap3[rnd]=r;});
+        const myRounds3=Object.values(roundMap3).sort((a,b)=>Number(a[0]||0)-Number(b[0]||0));
         if(myRounds3.length){
           sRenderRoundHistory(myRounds3);
           sRenderSummaryFromRounds(myRounds3);
@@ -723,12 +726,22 @@ function hideStudentPortal(){}
         const gSemClass  = gKeyParts.slice(0,-1).join("_");
         const fullName   = sSession.groupKey;
 
-        const myRounds = roundHistory.filter(r=>{
+        const myRoundsRaw = roundHistory.filter(r=>{
           const rGroup = String(r[5]||"").trim();
           return rGroup === fullName || rGroup === gGroupName ||
                  rGroup === (gSemClass+"_"+gGroupName) ||
                  rGroup.endsWith("_"+gGroupName) || rGroup.includes(gGroupName);
         });
+        // 每個回合只保留最新一筆（push_all 可能追加多次，取後資產最大的那筆）
+        const roundMap={};
+        myRoundsRaw.forEach(r=>{
+          const rnd=Number(r[0]||0);
+          if(!roundMap[rnd]||Number(r[9]||0)!==Number(roundMap[rnd][9]||0)){
+            // 同回合有多筆時，保留最後一筆（陣列順序 = 寫入順序）
+            roundMap[rnd]=r;
+          }
+        });
+        const myRounds=Object.values(roundMap).sort((a,b)=>Number(a[0]||0)-Number(b[0]||0));
 
         // 回合數：優先 GS currentRound，其次 roundHistory 最大值
         let displayRound = serverRound;
