@@ -771,10 +771,10 @@ function hideStudentPortal(){}
         sortedRounds.forEach((r,idx)=>{
           const rnd=Number(r[0]);
           const lev=Number(r[6]||1);
-          const specialTag=String(r[11]||"").trim();
           const studentReason=String(r[12]||"").trim();
+          const specialTag=String(r[13]||"").trim();
           // ① 優先用 roundHistory 新欄位 N/O/P（教師執行後寫入，最準確）
-          const skPct=Number(r[13]||0), bdPct=Number(r[14]||0), crPct=Number(r[15]||0);
+          const skPct=Number(r[14]||0), bdPct=Number(r[15]||0), crPct=Number(r[16]||0);
           const hasNewCols=(skPct+bdPct+crPct)>0;
           if(hasNewCols){
             decByRound[rnd]={sk:Math.round(skPct),bd:Math.round(bdPct),cr:Math.round(crPct),
